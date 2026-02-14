@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, useSpring, useTransform } from 'framer-motion';
 import WinnerModal from './WinnerModal';
+import HelpModal from './HelpModal';
 import { saveActiveGame, subscribeToActiveGame, clearActiveGame, saveGameHistory, updateRoomState, subscribeToRoom } from '../services/db';
 
 const WINNING_SCORE = 500;
@@ -44,6 +45,7 @@ export default function DummyCalculator({ playerNames, roomId, onReset, onHistor
   const [log, setLog] = useState([]);
   const [winner, setWinner] = useState(null);
   const [winnerPrices, setWinnerPrices] = useState(null);
+  const [showHelp, setShowHelp] = useState(false);
   
   // Load active game from Firestore (Room or Single)
   useEffect(() => {
@@ -532,6 +534,13 @@ export default function DummyCalculator({ playerNames, roomId, onReset, onHistor
           >
             🏆 ประวัติเกม
           </button>
+          <span className="text-gray-300 mx-2">|</span>
+          <button
+            onClick={() => setShowHelp(true)}
+            className="text-[#4988C4] hover:text-[#0F2854] text-sm transition-all cursor-pointer"
+          >
+            ❓ วิธีใช้งาน
+          </button>
         </div>
       </div>
 
@@ -544,6 +553,9 @@ export default function DummyCalculator({ playerNames, roomId, onReset, onHistor
           onClose={handleNewRound}
         />
       )}
+
+      {/* Help Modal */}
+      {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
     </div>
   );
 }

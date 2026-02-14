@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getLastPlayerNames, saveLastPlayerNames, createRoom, checkRoomExists, joinRoom } from '../services/db';
 import { loginWithGoogle, logout, subscribeToAuth } from '../services/auth';
+import HelpModal from './HelpModal';
 
 export default function PlayerSetup({ onStart, onHistory }) {
   const [names, setNames] = useState(['', '', '', '']);
@@ -9,6 +10,7 @@ export default function PlayerSetup({ onStart, onHistory }) {
   const [joinRoomId, setJoinRoomId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showHelp, setShowHelp] = useState(false);
 
   useEffect(() => {
     const unsubscribe = subscribeToAuth((u) => {
@@ -232,7 +234,7 @@ export default function PlayerSetup({ onStart, onHistory }) {
           </button>
         </form>
         
-        <div className="text-center mt-4">
+        <div className="text-center mt-4 flex justify-center gap-4">
           <button
             type="button"
             onClick={onHistory}
@@ -240,8 +242,18 @@ export default function PlayerSetup({ onStart, onHistory }) {
           >
             🏆 ดูประวัติเกม
           </button>
+          <span className="text-gray-300">|</span>
+          <button
+            type="button"
+            onClick={() => setShowHelp(true)}
+            className="text-[#4988C4] hover:text-[#0F2854] text-sm transition-all cursor-pointer"
+          >
+            ❓ วิธีใช้งาน
+          </button>
         </div>
       </div>
+
+      {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
     </div>
   );
 }
