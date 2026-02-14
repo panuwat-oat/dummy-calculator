@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, useSpring, useTransform } from 'framer-motion';
 import WinnerModal from './WinnerModal';
 import HelpModal from './HelpModal';
-import { saveActiveGame, subscribeToActiveGame, clearActiveGame, saveGameHistory, updateRoomState, subscribeToRoom } from '../services/db';
+import { saveActiveGame, subscribeToActiveGame, clearActiveGame, saveGameHistory } from '../services/db';
 
 const WINNING_SCORE = 500;
 

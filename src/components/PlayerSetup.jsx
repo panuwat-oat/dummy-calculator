@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getLastPlayerNames, saveLastPlayerNames, createRoom, checkRoomExists, joinRoom } from '../services/db';
+import { getLastPlayerNames, saveLastPlayerNames } from '../services/db';
 import { loginWithGoogle, logout, subscribeToAuth } from '../services/auth';
 import HelpModal from './HelpModal';
 
