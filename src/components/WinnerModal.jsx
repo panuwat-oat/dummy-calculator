@@ -38,7 +38,7 @@ export default function WinnerModal({ winner, prices, playerNames, onClose }) {
         <p className="text-[#4988C4] mb-6">สรุปผลการเล่น</p>
 
         <div className="bg-[#BDE8F5]/30 rounded-2xl p-4 mb-6">
-          <div className="grid grid-cols-4 gap-2 text-sm">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
             {playerNames.map((name, i) => (
               <div key={i} className="text-center">
                 <p className="font-semibold text-[#4988C4] truncate">{name}</p>

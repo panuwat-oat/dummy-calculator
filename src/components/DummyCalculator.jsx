@@ -333,7 +333,7 @@ export default function DummyCalculator({ playerNames, roomId, onReset, onHistor
 
         {/* Scoreboard */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-lg p-5 mb-4">
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {playerNames.map((name, i) => (
               <div key={i} className="text-center">
                 <p className="text-[#4988C4] text-sm font-medium truncate mb-1">{name}</p>
@@ -347,7 +347,7 @@ export default function DummyCalculator({ playerNames, roomId, onReset, onHistor
 
         {/* Input Row */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-lg p-5 mb-4">
-          <div className="grid grid-cols-4 gap-3 mb-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 gap-y-6 mb-4">
             {inputs.map((val, i) => (
               <div key={i} className="flex flex-col items-center gap-1.5">
                 {editingNameIndex === i ? (
@@ -443,7 +443,7 @@ export default function DummyCalculator({ playerNames, roomId, onReset, onHistor
             <h2 className="text-[#0F2854] font-semibold mb-3 text-sm uppercase tracking-wider">
               📊 สถิติ
             </h2>
-            <div className="grid grid-cols-4 gap-3 text-center">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
               {playerNames.map((name, i) => {
                 const rounds = log.filter(e => e.type === 'round');
                 const avg = rounds.length > 0

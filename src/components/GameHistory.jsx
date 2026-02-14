@@ -70,7 +70,7 @@ export default function GameHistory({ onBack }) {
                     {game.rounds} รอบ
                   </span>
                 </div>
-                <div className="grid grid-cols-4 gap-3 text-center">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
                   {game.players.map((player, j) => (
                     <div key={j}>
                       <p className={`text-sm font-medium truncate mb-1 ${player.name === game.winner ? 'text-[#1C4D8D]' : 'text-[#4988C4]'}`}>
