@@ -30,7 +30,7 @@ export default function DummyCalculator({ playerNames, onReset, onHistory }) {
     const saved = localStorage.getItem('gameScores');
     return saved ? JSON.parse(saved) : [0, 0, 0, 0];
   });
-  const [inputs, setInputs] = useState(['', '', '', '']);
+  const [inputs, setInputs] = useState(['0', '0', '0', '0']);
   const [log, setLog] = useState(() => {
     const saved = localStorage.getItem('gameLog');
     return saved ? JSON.parse(saved) : [];
@@ -142,13 +142,13 @@ export default function DummyCalculator({ playerNames, onReset, onHistory }) {
     setLog(newLog);
     localStorage.setItem('gameScores', JSON.stringify(newScores));
     localStorage.setItem('gameLog', JSON.stringify(newLog));
-    setInputs(['', '', '', '']);
+    setInputs(['0', '0', '0', '0']);
     inputRefs.current[0]?.focus();
   }, [inputs, scores, log, playerNames]);
 
   const handleNewRound = () => {
     setScores([0, 0, 0, 0]);
-    setInputs(['', '', '', '']);
+    setInputs(['0', '0', '0', '0']);
     setLog([]);
     setWinner(null);
     setWinnerPrices(null);
@@ -202,7 +202,7 @@ export default function DummyCalculator({ playerNames, onReset, onHistory }) {
   const handleResetAll = () => {
     if (!window.confirm('รีเซ็ตคะแนนทั้งหมด?')) return;
     setScores([0, 0, 0, 0]);
-    setInputs(['', '', '', '']);
+    setInputs(['0', '0', '0', '0']);
     setLog([]);
     setWinner(null);
     setWinnerPrices(null);
