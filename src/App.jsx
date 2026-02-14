@@ -3,16 +3,27 @@ import PlayerSetup from './components/PlayerSetup';
 import DummyCalculator from './components/DummyCalculator';
 
 function App() {
-  const [playerNames, setPlayerNames] = useState(null);
+  const [playerNames, setPlayerNames] = useState(() => {
+    const saved = localStorage.getItem('playerNames');
+    return saved ? JSON.parse(saved) : null;
+  });
 
   if (!playerNames) {
-    return <PlayerSetup onStart={setPlayerNames} />;
+    return <PlayerSetup onStart={(names) => {
+      localStorage.setItem('playerNames', JSON.stringify(names));
+      setPlayerNames(names);
+    }} />;
   }
 
   return (
     <DummyCalculator
       playerNames={playerNames}
-      onReset={() => setPlayerNames(null)}
+      onReset={() => {
+        localStorage.removeItem('playerNames');
+        localStorage.removeItem('gameScores');
+        localStorage.removeItem('gameLog');
+        setPlayerNames(null);
+      }}
     />
   );
 }

@@ -26,9 +26,15 @@ function checkPrice(num) {
 }
 
 export default function DummyCalculator({ playerNames, onReset }) {
-  const [scores, setScores] = useState([0, 0, 0, 0]);
+  const [scores, setScores] = useState(() => {
+    const saved = localStorage.getItem('gameScores');
+    return saved ? JSON.parse(saved) : [0, 0, 0, 0];
+  });
   const [inputs, setInputs] = useState(['', '', '', '']);
-  const [log, setLog] = useState([]);
+  const [log, setLog] = useState(() => {
+    const saved = localStorage.getItem('gameLog');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [winner, setWinner] = useState(null);
   const [winnerPrices, setWinnerPrices] = useState(null);
   const inputRefs = useRef([]);
@@ -76,6 +82,8 @@ export default function DummyCalculator({ playerNames, onReset }) {
 
     setScores(newScores);
     setLog(newLog);
+    localStorage.setItem('gameScores', JSON.stringify(newScores));
+    localStorage.setItem('gameLog', JSON.stringify(newLog));
     setInputs(['', '', '', '']);
     inputRefs.current[0]?.focus();
   }, [inputs, scores, log, playerNames]);
@@ -86,6 +94,8 @@ export default function DummyCalculator({ playerNames, onReset }) {
     setLog([]);
     setWinner(null);
     setWinnerPrices(null);
+    localStorage.setItem('gameScores', JSON.stringify([0, 0, 0, 0]));
+    localStorage.removeItem('gameLog');
     inputRefs.current[0]?.focus();
   };
 
@@ -95,6 +105,8 @@ export default function DummyCalculator({ playerNames, onReset }) {
     setLog([]);
     setWinner(null);
     setWinnerPrices(null);
+    localStorage.setItem('gameScores', JSON.stringify([0, 0, 0, 0]));
+    localStorage.removeItem('gameLog');
   };
 
   const getScoreColor = (score) => {
