@@ -6,8 +6,6 @@ import HelpModal from './HelpModal';
 export default function PlayerSetup({ onStart, onHistory }) {
   const [names, setNames] = useState(['', '', '', '']);
   const [user, setUser] = useState(null);
-  const [mode, setMode] = useState('single'); // 'single', 'create', 'join'
-  const [joinRoomId, setJoinRoomId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showHelp, setShowHelp] = useState(false);
@@ -63,47 +61,9 @@ export default function PlayerSetup({ onStart, onHistory }) {
     e.preventDefault();
     setError('');
     
-    if (mode === 'join') {
-      if (!joinRoomId.trim()) {
-        setError('กรุณากรอกรหัสห้อง');
-        return;
-      }
-      if (!names[0].trim()) {
-        setError('กรุณากรอกชื่อของคุณ (ผู้เล่น 1)');
-        return;
-      }
-      setLoading(true);
-      const exists = await checkRoomExists(joinRoomId);
-      if (!exists) {
-        setError('ไม่พบห้องนี้');
-        setLoading(false);
-        return;
-      }
-      // For joining, we might only need the first name as "Me"
-      // But preserving the array format for consistency
-      const myName = names[0].trim();
-      const updatedNames = await joinRoom(joinRoomId, myName); 
-      
-      // We pass the room ID to onStart
-      onStart(updatedNames, joinRoomId);
-      setLoading(false);
+    if (names.some((n) => n.trim() === '')) {
+      setError('กรุณากรอกชื่อให้ครบ 4 คน');
       return;
-    }
-
-    // Single Player Mode - Require all 4 names
-    if (mode === 'single') {
-      if (names.some((n) => n.trim() === '')) {
-        setError('กรุณากรอกชื่อให้ครบ 4 คน');
-        return;
-      }
-    }
-
-    // Create Room Mode - Require only Host name (Player 1)
-    if (mode === 'create') {
-      if (!names[0].trim()) {
-        setError('กรุณากรอกชื่อของคุณ (ผู้เล่น 1)');
-        return;
-      }
     }
     
     setLoading(true);
@@ -111,23 +71,7 @@ export default function PlayerSetup({ onStart, onHistory }) {
     localStorage.setItem('lastPlayerNames', JSON.stringify(trimmedNames));
     saveLastPlayerNames(trimmedNames);
 
-    let roomId = null;
-    if (mode === 'create') {
-      try {
-        roomId = await createRoom(trimmedNames);
-      } catch (e) {
-        console.error(e);
-        if (e.message === 'Connection timeout') {
-          setError('เชื่อมต่อเซิร์ฟเวอร์ไม่สำเร็จ กรุณาลองใหม่');
-        } else {
-          setError('สร้างห้องไม่สำเร็จ: ' + e.message);
-        }
-        setLoading(false);
-        return;
-      }
-    }
-
-    onStart(trimmedNames, roomId);
+    onStart(trimmedNames);
     setLoading(false);
   };
 
@@ -155,75 +99,25 @@ export default function PlayerSetup({ onStart, onHistory }) {
           )}
         </div>
 
-        {/* Mode Selection */}
-        <div className="flex bg-gray-100 rounded-lg sm:rounded-xl p-0.5 sm:p-1 mb-4 sm:mb-6">
-          <button 
-            onClick={() => setMode('single')}
-            className={`flex-1 py-1.5 sm:py-2 rounded-md sm:rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer ${mode === 'single' ? 'bg-white text-[#1C4D8D] shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
-          >
-            เล่นคนเดียว
-          </button>
-          <button 
-            onClick={() => setMode('create')}
-            className={`flex-1 py-1.5 sm:py-2 rounded-md sm:rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer ${mode === 'create' ? 'bg-white text-[#1C4D8D] shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
-          >
-            สร้างห้อง
-          </button>
-          <button 
-            onClick={() => setMode('join')}
-            className={`flex-1 py-1.5 sm:py-2 rounded-md sm:rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer ${mode === 'join' ? 'bg-white text-[#1C4D8D] shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
-          >
-            แจมห้อง
-          </button>
-        </div>
-
         <form onSubmit={handleStartGame} className="space-y-3 sm:space-y-4">
-          {mode === 'join' ? (
-            <div className="space-y-3 sm:space-y-4">
-              <div>
-                <label className="text-[#1C4D8D] text-xs sm:text-sm font-medium mb-1 block">รหัสห้อง (6 หลัก)</label>
-                <input
-                  type="text"
-                  value={joinRoomId}
-                  onChange={(e) => setJoinRoomId(e.target.value)}
-                  placeholder="เช่น 123456"
-                  className="w-full px-3 py-2.5 sm:px-4 sm:py-3 rounded-lg sm:rounded-xl bg-gray-50 border border-gray-200 text-[#0F2854] text-center text-xl sm:text-2xl tracking-widest font-bold placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4988C4] focus:border-transparent transition-all"
-                  maxLength={6}
-                />
-              </div>
-              <div>
-                <label className="text-[#1C4D8D] text-xs sm:text-sm font-medium mb-1 block">ชื่อของคุณ</label>
-                <input
-                  type="text"
-                  value={names[0]}
-                  onChange={(e) => handleChange(0, e.target.value)}
-                  placeholder="กรอกชื่อ"
-                  className="w-full px-3 py-2.5 sm:px-4 sm:py-3 rounded-lg sm:rounded-xl bg-gray-50 border border-gray-200 text-[#0F2854] placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4988C4] focus:border-transparent transition-all"
-                />
-              </div>
+          <p className="text-[#4988C4] text-xs sm:text-sm text-center mb-1 sm:mb-2">
+            กรอกชื่อผู้เล่นทั้ง 4 คน
+          </p>
+          {names.map((name, i) => (
+            <div key={i} className="relative">
+              <label className="text-[#1C4D8D] text-xs sm:text-sm font-medium mb-0.5 sm:mb-1 block">
+                ผู้เล่นคนที่ {i + 1} {i === 0 && user && '(คุณ)'}
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => handleChange(i, e.target.value)}
+                placeholder={`ชื่อผู้เล่น ${i + 1}`}
+                className="w-full px-3 py-2.5 sm:px-4 sm:py-3 rounded-lg sm:rounded-xl bg-gray-50 border border-gray-200 text-[#0F2854] text-sm sm:text-base placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4988C4] focus:border-transparent transition-all"
+                autoFocus={i === 0}
+              />
             </div>
-          ) : (
-            <>
-              <p className="text-[#4988C4] text-xs sm:text-sm text-center mb-1 sm:mb-2">
-                {mode === 'create' ? 'กรอกชื่อผู้เล่นเริ่มต้น (ชวนเพื่อนมาช่วยกรอกทีหลังได้)' : 'กรอกชื่อผู้เล่นทั้ง 4 คน'}
-              </p>
-              {names.map((name, i) => (
-                <div key={i} className="relative">
-                  <label className="text-[#1C4D8D] text-xs sm:text-sm font-medium mb-0.5 sm:mb-1 block">
-                    ผู้เล่นคนที่ {i + 1} {i === 0 && user && '(คุณ)'}
-                  </label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => handleChange(i, e.target.value)}
-                    placeholder={`ชื่อผู้เล่น ${i + 1}`}
-                    className="w-full px-3 py-2.5 sm:px-4 sm:py-3 rounded-lg sm:rounded-xl bg-gray-50 border border-gray-200 text-[#0F2854] text-sm sm:text-base placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4988C4] focus:border-transparent transition-all"
-                    autoFocus={i === 0}
-                  />
-                </div>
-              ))}
-            </>
-          )}
+          ))}
 
           {error && <p className="text-red-500 text-xs sm:text-sm text-center">{error}</p>}
 
@@ -234,7 +128,7 @@ export default function PlayerSetup({ onStart, onHistory }) {
               loading ? 'bg-gray-300 text-gray-500' : 'bg-[#1C4D8D] text-white hover:bg-[#0F2854] shadow-lg hover:shadow-[#1C4D8D]/30'
             }`}
           >
-            {loading ? 'กำลังโหลด...' : mode === 'join' ? '🚀 เข้าห้อง' : mode === 'create' ? '🏠 สร้างห้อง' : '🎮 เริ่มเกม'}
+            {loading ? 'กำลังโหลด...' : '🎮 เริ่มเกม'}
           </button>
         </form>
         

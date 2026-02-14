@@ -39,7 +39,7 @@ function checkPrice(num) {
   return sum;
 }
 
-export default function DummyCalculator({ playerNames, roomId, onReset, onHistory }) {
+export default function DummyCalculator({ playerNames, onReset, onHistory }) {
   const [scores, setScores] = useState([0, 0, 0, 0]);
   const [inputs, setInputs] = useState(['0', '0', '0', '0']);
   const [log, setLog] = useState([]);
@@ -47,85 +47,45 @@ export default function DummyCalculator({ playerNames, roomId, onReset, onHistor
   const [winnerPrices, setWinnerPrices] = useState(null);
   const [showHelp, setShowHelp] = useState(false);
   const isRemoteUpdate = useRef(false);
-  const stateRef = useRef({ scores, log, playerNames });
+  const stateRef = useRef({ scores, log });
 
   // Keep ref synced with state for subscription callbacks
   useEffect(() => {
-    stateRef.current = { scores, log, playerNames };
-  }, [scores, log, playerNames]);
+    stateRef.current = { scores, log };
+  }, [scores, log]);
   
-  // Load active game from Firestore (Room or Single)
+  // Load active game from Firestore (Single Player)
   useEffect(() => {
     let unsubscribe;
     
-    if (roomId) {
-      // Multiplayer Mode
-      unsubscribe = subscribeToRoom(roomId, (data) => {
-        if (data) {
-          const newScores = data.scores || [0, 0, 0, 0];
-          const newLog = data.log || [];
-          const newPlayerNames = data.playerNames;
+    unsubscribe = subscribeToActiveGame((data) => {
+      if (data && data.active) {
+        const newScores = data.scores || [0, 0, 0, 0];
+        const newLog = data.log || [];
+        
+        const prevScores = stateRef.current.scores;
+        const prevLog = stateRef.current.log;
 
-          const prevScores = stateRef.current.scores;
-          const prevLog = stateRef.current.log;
-          const prevPlayerNames = stateRef.current.playerNames;
+        let hasChanges = false;
 
-          let hasChanges = false;
-
-          // Check scores
-          if (JSON.stringify(prevScores) !== JSON.stringify(newScores)) {
-             setScores(newScores);
-             hasChanges = true;
-          }
-
-          // Check log
-          if (JSON.stringify(prevLog) !== JSON.stringify(newLog)) {
-             setLog(newLog);
-             hasChanges = true;
-          }
-
-          // Sync player names if they change in the room (e.g. someone joins)
-          if (newPlayerNames && JSON.stringify(newPlayerNames) !== JSON.stringify(prevPlayerNames)) {
-             window.dispatchEvent(new CustomEvent('updatePlayerNames', { detail: newPlayerNames }));
-             hasChanges = true;
-          }
-
-          if (hasChanges) {
-             isRemoteUpdate.current = true;
-          }
+        if (JSON.stringify(prevScores) !== JSON.stringify(newScores)) {
+            setScores(newScores);
+            hasChanges = true;
         }
-      });
-    } else {
-      // Single Player Mode
-      unsubscribe = subscribeToActiveGame((data) => {
-        if (data && data.active) {
-          const newScores = data.scores || [0, 0, 0, 0];
-          const newLog = data.log || [];
-          
-          const prevScores = stateRef.current.scores;
-          const prevLog = stateRef.current.log;
-
-          let hasChanges = false;
-
-          if (JSON.stringify(prevScores) !== JSON.stringify(newScores)) {
-             setScores(newScores);
-             hasChanges = true;
-          }
-          
-          if (JSON.stringify(prevLog) !== JSON.stringify(newLog)) {
-             setLog(newLog);
-             hasChanges = true;
-          }
-
-          if (hasChanges) {
-             isRemoteUpdate.current = true;
-          }
+        
+        if (JSON.stringify(prevLog) !== JSON.stringify(newLog)) {
+            setLog(newLog);
+            hasChanges = true;
         }
-      });
-    }
+
+        if (hasChanges) {
+            isRemoteUpdate.current = true;
+        }
+      }
+    });
 
     return () => unsubscribe && unsubscribe();
-  }, [roomId]); // Re-subscribe if roomId changes
+  }, []);
 
   // Save active game to Firestore whenever state changes
   useEffect(() => {
@@ -135,22 +95,14 @@ export default function DummyCalculator({ playerNames, roomId, onReset, onHistor
     }
 
     if (log.length > 0 || scores.some(s => s !== 0)) {
-        if (roomId) {
-            updateRoomState(roomId, {
-                scores,
-                log,
-                playerNames // Keep names in sync
-            });
-        } else {
-            saveActiveGame({
-                active: true,
-                playerNames,
-                scores,
-                log
-            });
-        }
+        saveActiveGame({
+            active: true,
+            playerNames,
+            scores,
+            log
+        });
     }
-  }, [scores, log, playerNames, roomId]);
+  }, [scores, log, playerNames]);
 
   const [editingIndex, setEditingIndex] = useState(null);
   const [editValues, setEditValues] = useState(['', '', '', '']);
@@ -180,11 +132,6 @@ export default function DummyCalculator({ playerNames, roomId, onReset, onHistor
     
     // Update locally
     window.dispatchEvent(new CustomEvent('updatePlayerNames', { detail: newNames }));
-    
-    // If in a room, update the room state so everyone sees the new name
-    if (roomId) {
-        updateRoomState(roomId, { playerNames: newNames });
-    }
     
     setEditingNameIndex(null);
   };
@@ -273,11 +220,7 @@ export default function DummyCalculator({ playerNames, roomId, onReset, onHistor
     setWinner(null);
     setWinnerPrices(null);
     
-    if (roomId) {
-        updateRoomState(roomId, { scores: [0,0,0,0], log: [], winner: null });
-    } else {
-        clearActiveGame(); // Clear from cloud
-    }
+    clearActiveGame(); // Clear from cloud
     
     localStorage.setItem('gameScores', JSON.stringify([0, 0, 0, 0]));
     localStorage.removeItem('gameLog');
@@ -334,11 +277,7 @@ export default function DummyCalculator({ playerNames, roomId, onReset, onHistor
     setWinner(null);
     setWinnerPrices(null);
     
-    if (roomId) {
-        updateRoomState(roomId, { scores: [0,0,0,0], log: [], winner: null });
-    } else {
-        clearActiveGame(); // Clear from cloud
-    }
+    clearActiveGame(); // Clear from cloud
 
     localStorage.setItem('gameScores', JSON.stringify([0, 0, 0, 0]));
     localStorage.removeItem('gameLog');
@@ -380,11 +319,6 @@ export default function DummyCalculator({ playerNames, roomId, onReset, onHistor
           <h1 className="text-lg sm:text-2xl md:text-3xl font-bold text-[#0F2854]">
             🃏 เครื่องคิดเลข ดัมมี่
           </h1>
-          {roomId && (
-            <div className="mt-1 inline-block px-2 py-0.5 bg-[#BDE8F5]/30 rounded-full border border-[#BDE8F5] text-[#1C4D8D] text-[10px] sm:text-xs font-medium">
-              🔑 ห้อง: <span className="font-bold tracking-widest">{roomId}</span>
-            </div>
-          )}
         </div>
 
         {/* Scoreboard - always 4 cols */}

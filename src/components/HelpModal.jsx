@@ -40,18 +40,6 @@ export default function HelpModal({ onClose }) {
                   เล่นบนเครื่องเดียว กรอกคะแนนให้เพื่อนๆ ทุกคน เหมาะสำหรับส่งมือถือวนกันดู
                 </p>
               </div>
-              <div className="bg-gray-50 p-2.5 sm:p-3 rounded-lg sm:rounded-xl border border-gray-100">
-                <p className="font-semibold text-xs sm:text-sm mb-0.5 sm:mb-1">🏠 สร้างห้อง (Create Room)</p>
-                <p className="text-[11px] sm:text-sm text-gray-500">
-                  คุณเป็นเจ้าของห้อง ได้รหัส 6 หลัก ส่งให้เพื่อน อีก 3 คน เพื่อเข้ามาจอยห้องเดียวกัน คะแนนจะขึ้นพร้อมกันทุกเครื่อง
-                </p>
-              </div>
-              <div className="bg-gray-50 p-2.5 sm:p-3 rounded-lg sm:rounded-xl border border-gray-100">
-                <p className="font-semibold text-xs sm:text-sm mb-0.5 sm:mb-1">🚀 แจมห้อง (Join Room)</p>
-                <p className="text-[11px] sm:text-sm text-gray-500">
-                  กรอกรหัสห้องที่เพื่อนส่งมา เพื่อเข้าไปดูและช่วยกรอกคะแนนในห้องนั้น
-                </p>
-              </div>
             </div>
           </section>
 

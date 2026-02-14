@@ -72,123 +72,6 @@ export const clearGameHistory = async () => {
     }
 };
 
-// --- Multiplayer Rooms ---
-
-export const createRoom = async (initialNames) => {
-    try {
-        const roomId = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digit code
-        const userId = getUserId();
-        
-        // Ensure we have 4 names
-        const names = [...initialNames];
-        while (names.length < 4) names.push('');
-
-        await apiCall('/room', 'POST', {
-            roomId,
-            hostId: userId,
-            playerNames: names
-        });
-        
-        return roomId;
-    } catch (error) {
-        console.error("Error creating room:", error);
-        throw error;
-    }
-};
-
-export const checkRoomExists = async (roomId) => {
-    try {
-        await apiCall(`/room?id=${roomId}`);
-        return true;
-    } catch (error) {
-        return false;
-    }
-};
-
-export const joinRoom = async (roomId, playerName) => {
-    try {
-        const room = await apiCall(`/room?id=${roomId}`);
-        let currentNames = room.player_names || ['', '', '', ''];
-
-        // Find empty slot
-        const emptyIndex = currentNames.findIndex(n => n === '' || n.trim() === '');
-        
-        // Or check if this player is already in the room (re-joining)
-        const existingIndex = currentNames.findIndex(n => n === playerName);
-
-        if (existingIndex !== -1) {
-            return currentNames;
-        }
-
-        if (emptyIndex === -1) {
-            throw new Error("Room is full!");
-        }
-
-        // Occupy the slot
-        currentNames[emptyIndex] = playerName;
-        
-        await apiCall('/room', 'PUT', {
-            roomId,
-            playerNames: currentNames
-        });
-
-        return currentNames;
-    } catch (error) {
-        console.error("Error joining room:", error);
-        throw error;
-    }
-};
-
-export const updateRoomState = async (roomId, data) => {
-    try {
-        await apiCall('/room', 'PUT', {
-            roomId,
-            ...data
-        });
-    } catch (error) {
-        console.error("Error updating room:", error);
-    }
-};
-
-// Polling for Room Subscription
-export const subscribeToRoom = (roomId, callback) => {
-    let isActive = true;
-    
-    const poll = async () => {
-        if (!isActive) return;
-        try {
-            const room = await apiCall(`/room?id=${roomId}`);
-            if (isActive) {
-                // Map DB keys to app keys if necessary (snake_case to camelCase)
-                // Postgres returns `player_names`, app expects `playerNames`
-                const mappedData = {
-                    ...room,
-                    playerNames: room.player_names,
-                    scores: room.scores,
-                    log: room.log,
-                    status: room.status,
-                    winner: room.winner
-                };
-                callback(mappedData);
-            }
-        } catch (error) {
-            // Room might be gone or error
-            console.warn("Polling error:", error);
-        }
-    };
-
-    // Initial fetch
-    poll();
-    
-    // Poll every 2 seconds
-    const interval = setInterval(poll, 2000);
-
-    return () => {
-        isActive = false;
-        clearInterval(interval);
-    };
-};
-
 // --- User Settings ---
 
 export const saveLastPlayerNames = async (names) => {
@@ -196,10 +79,8 @@ export const saveLastPlayerNames = async (names) => {
         const userId = getUserId();
         await apiCall('/settings', 'POST', {
             lastPlayerNames: names
-        }); // Pass userId via query in apiCall? No, handler expects body or query.
-        // Wait, handler expects deviceId in query for POST too? 
-        // Let's fix the call:
-        // My handler for POST uses query for deviceId too.
+        }); 
+        
         await fetch(`${API_BASE}/settings?deviceId=${userId}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
