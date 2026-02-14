@@ -317,27 +317,27 @@ export default function DummyCalculator({ playerNames, roomId, onReset, onHistor
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-gray-50 px-2 pt-1 pb-4 sm:px-4">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
-        <div className="text-center pt-4 pb-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-[#0F2854]">
+        <div className="text-center pt-2 pb-2 sm:pt-4 sm:pb-6">
+          <h1 className="text-lg sm:text-2xl md:text-3xl font-bold text-[#0F2854]">
             🃏 เครื่องคิดเลข ดัมมี่
           </h1>
           {roomId && (
-            <div className="mt-2 inline-block px-3 py-1 bg-[#BDE8F5]/30 rounded-full border border-[#BDE8F5] text-[#1C4D8D] text-xs font-medium">
+            <div className="mt-1 inline-block px-2 py-0.5 bg-[#BDE8F5]/30 rounded-full border border-[#BDE8F5] text-[#1C4D8D] text-[10px] sm:text-xs font-medium">
               🔑 ห้อง: <span className="font-bold tracking-widest">{roomId}</span>
             </div>
           )}
         </div>
 
-        {/* Scoreboard */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-lg p-5 mb-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {/* Scoreboard - always 4 cols */}
+        <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-100 shadow-lg p-2.5 mb-2 sm:p-5 sm:mb-4">
+          <div className="grid grid-cols-4 gap-1 sm:gap-3">
             {playerNames.map((name, i) => (
               <div key={i} className="text-center">
-                <p className="text-[#4988C4] text-sm font-medium truncate mb-1">{name}</p>
-                <p className={`text-3xl md:text-4xl font-bold tabular-nums ${getScoreColor(scores[i])}`}>
+                <p className="text-[#4988C4] text-[10px] sm:text-sm font-medium truncate mb-0.5 sm:mb-1">{name}</p>
+                <p className={`text-xl sm:text-3xl md:text-4xl font-bold tabular-nums ${getScoreColor(scores[i])}`}>
                   <AnimatedScore value={scores[i]} />
                 </p>
               </div>
@@ -346,10 +346,10 @@ export default function DummyCalculator({ playerNames, roomId, onReset, onHistor
         </div>
 
         {/* Input Row */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-lg p-5 mb-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 gap-y-6 mb-4">
+        <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-100 shadow-lg p-2 mb-2 sm:p-5 sm:mb-4">
+          <div className="grid grid-cols-2 gap-2 gap-y-3 mb-2.5 sm:gap-3 sm:gap-y-6 sm:mb-4 md:grid-cols-4">
             {inputs.map((val, i) => (
-              <div key={i} className="flex flex-col items-center gap-1.5">
+              <div key={i} className="flex flex-col items-center gap-0.5 sm:gap-1.5">
                 {editingNameIndex === i ? (
                   <div className="flex gap-1 w-full">
                     <input
@@ -366,19 +366,19 @@ export default function DummyCalculator({ playerNames, roomId, onReset, onHistor
                 ) : (
                   <p 
                     onClick={() => handleEditName(i)}
-                    className="text-[#4988C4] text-xs font-medium truncate w-full text-center cursor-pointer hover:text-[#1C4D8D] hover:bg-gray-50 rounded px-1 py-0.5 transition-all"
+                    className="text-[#4988C4] text-[10px] sm:text-xs font-medium truncate w-full text-center cursor-pointer hover:text-[#1C4D8D] hover:bg-gray-50 rounded px-1 py-0.5 transition-all"
                   >
                     {playerNames[i]}
                   </p>
                 )}
                 {/* + buttons */}
-                <div className="flex gap-1 w-full justify-center">
+                <div className="flex gap-0.5 sm:gap-1 w-full justify-center">
                   {[5, 10, 50, 100].map((n) => (
                     <button
                       key={n}
                       type="button"
                       onClick={() => { const updated = [...inputs]; updated[i] = String((parseInt(updated[i]) || 0) + n); setInputs(updated); inputRefs.current[i]?.focus(); }}
-                      className="flex-1 py-1 rounded-md text-[10px] font-bold bg-[#BDE8F5]/50 text-[#1C4D8D] border border-[#BDE8F5] hover:bg-[#BDE8F5] transition-all cursor-pointer leading-tight"
+                      className="flex-1 py-0.5 sm:py-1 rounded text-[8px] sm:text-[10px] font-bold bg-[#BDE8F5]/50 text-[#1C4D8D] border border-[#BDE8F5] hover:bg-[#BDE8F5] active:bg-[#BDE8F5] transition-all cursor-pointer leading-tight"
                     >
                       +{n}
                     </button>
@@ -393,17 +393,17 @@ export default function DummyCalculator({ playerNames, roomId, onReset, onHistor
                   onKeyDown={(e) => handleKeyDown(e, i)}
                   onFocus={() => setFocusedInput(i)}
                   placeholder="0"
-                  className={`w-full text-center text-xl font-semibold py-3 rounded-xl bg-gray-50 border text-[#0F2854] placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4988C4] focus:border-transparent transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${focusedInput === i ? 'border-[#4988C4]' : 'border-gray-200'}`}
+                  className={`w-full text-center text-base sm:text-xl font-semibold py-2 sm:py-3 rounded-lg sm:rounded-xl bg-gray-50 border text-[#0F2854] placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4988C4] focus:border-transparent transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${focusedInput === i ? 'border-[#4988C4]' : 'border-gray-200'}`}
                   autoFocus={i === 0}
                 />
                 {/* - buttons */}
-                <div className="flex gap-1 w-full justify-center">
+                <div className="flex gap-0.5 sm:gap-1 w-full justify-center">
                   {[5, 10, 50, 100].map((n) => (
                     <button
                       key={n}
                       type="button"
                       onClick={() => { const updated = [...inputs]; updated[i] = String((parseInt(updated[i]) || 0) - n); setInputs(updated); inputRefs.current[i]?.focus(); }}
-                      className="flex-1 py-1 rounded-md text-[10px] font-bold bg-red-50 text-red-400 border border-red-100 hover:bg-red-100 transition-all cursor-pointer leading-tight"
+                      className="flex-1 py-0.5 sm:py-1 rounded text-[8px] sm:text-[10px] font-bold bg-red-50 text-red-400 border border-red-100 hover:bg-red-100 active:bg-red-100 transition-all cursor-pointer leading-tight"
                     >
                       −{n}
                     </button>
@@ -413,24 +413,24 @@ export default function DummyCalculator({ playerNames, roomId, onReset, onHistor
             ))}
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex gap-2 sm:gap-3">
             <button
               onClick={handleCalculate}
               disabled={inputs.some((v) => v === '' || isNaN(parseInt(v)))}
-              className="flex-1 py-3 rounded-xl font-semibold text-lg bg-[#1C4D8D] text-white hover:bg-[#0F2854] shadow-lg hover:shadow-[#1C4D8D]/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              className="flex-1 py-2 sm:py-3 rounded-xl font-semibold text-sm sm:text-lg bg-[#1C4D8D] text-white hover:bg-[#0F2854] shadow-lg hover:shadow-[#1C4D8D]/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
               คำนวณ
             </button>
             <button
               onClick={handleUndo}
               disabled={log.filter(e => e.type === 'round').length === 0}
-              className="px-4 py-3 rounded-xl font-semibold text-lg bg-[#BDE8F5] text-[#1C4D8D] border border-[#4988C4]/20 hover:bg-[#4988C4] hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+              className="px-3 py-2 sm:px-4 sm:py-3 rounded-xl font-semibold text-sm sm:text-lg bg-[#BDE8F5] text-[#1C4D8D] border border-[#4988C4]/20 hover:bg-[#4988C4] hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
             >
               ↩
             </button>
             <button
               onClick={handleResetAll}
-              className="px-4 py-3 rounded-xl font-semibold text-lg bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500/30 transition-all cursor-pointer"
+              className="px-3 py-2 sm:px-4 sm:py-3 rounded-xl font-semibold text-xs sm:text-lg bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500/30 transition-all cursor-pointer"
             >
               รีเซ็ต
             </button>
@@ -439,11 +439,11 @@ export default function DummyCalculator({ playerNames, roomId, onReset, onHistor
 
         {/* Stats */}
         {log.filter(e => e.type === 'round').length > 0 && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-lg p-5 mb-4">
-            <h2 className="text-[#0F2854] font-semibold mb-3 text-sm uppercase tracking-wider">
+          <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-100 shadow-lg p-2.5 mb-2 sm:p-5 sm:mb-4">
+            <h2 className="text-[#0F2854] font-semibold mb-2 sm:mb-3 text-xs sm:text-sm uppercase tracking-wider">
               📊 สถิติ
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 text-center">
               {playerNames.map((name, i) => {
                 const rounds = log.filter(e => e.type === 'round');
                 const avg = rounds.length > 0
@@ -453,14 +453,14 @@ export default function DummyCalculator({ playerNames, roomId, onReset, onHistor
                 const min = rounds.length > 0 ? Math.min(...rounds.map(e => e.values[i])) : 0;
                 return (
                   <div key={i}>
-                    <p className="text-[#4988C4] text-xs font-medium truncate mb-1">{name}</p>
-                    <p className="text-[#0F2854] text-sm">เฉลี่ย <span className="font-bold">{avg}</span></p>
-                    <p className="text-[#4988C4] text-xs">สูงสุด {max} / ต่ำสุด {min}</p>
+                    <p className="text-[#4988C4] text-[10px] sm:text-xs font-medium truncate mb-0.5">{name}</p>
+                    <p className="text-[#0F2854] text-xs sm:text-sm">เฉลี่ย <span className="font-bold">{avg}</span></p>
+                    <p className="text-[#4988C4] text-[10px] sm:text-xs">สูงสุด {max} / ต่ำสุด {min}</p>
                   </div>
                 );
               })}
             </div>
-            <p className="text-center text-xs text-gray-400 mt-2">
+            <p className="text-center text-[10px] sm:text-xs text-gray-400 mt-1.5 sm:mt-2">
               รอบที่เล่น: {log.filter(e => e.type === 'round').length}
             </p>
           </div>
@@ -468,44 +468,50 @@ export default function DummyCalculator({ playerNames, roomId, onReset, onHistor
 
         {/* Log */}
         {log.length > 0 && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-lg p-5">
-            <h2 className="text-[#0F2854] font-semibold mb-3 text-sm uppercase tracking-wider">
+          <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-100 shadow-lg p-2.5 sm:p-5">
+            <h2 className="text-[#0F2854] font-semibold mb-2 sm:mb-3 text-xs sm:text-sm uppercase tracking-wider">
               📋 บันทึกคะแนน
             </h2>
-            <div className="space-y-1">
+            <div className="space-y-0.5 sm:space-y-1">
               {log.map((entry, i) => (
                 editingIndex === i ? (
-                  <div key={i} className="grid grid-cols-4 gap-2 py-2 px-3 rounded-lg bg-[#BDE8F5]/30 border-2 border-[#4988C4]">
-                    {editValues.map((val, j) => (
-                      <input
-                        key={j}
-                        type="number"
-                        value={val}
-                        onChange={(e) => {
-                          const updated = [...editValues];
-                          updated[j] = e.target.value;
-                          setEditValues(updated);
-                        }}
-                        onKeyDown={(e) => { if (e.key === 'Enter') handleSaveEdit(); if (e.key === 'Escape') handleCancelEdit(); }}
-                        className="w-full text-center text-base font-semibold py-1 rounded-lg bg-white border border-gray-200 text-[#0F2854] focus:outline-none focus:ring-2 focus:ring-[#4988C4] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        autoFocus={j === 0}
-                      />
-                    ))}
-                    <div className="col-span-4 flex gap-2 mt-1">
-                      <button onClick={handleSaveEdit} className="flex-1 py-1 rounded-lg bg-[#1C4D8D] text-white text-sm font-semibold hover:bg-[#0F2854] cursor-pointer">บันทึก</button>
-                      <button onClick={handleCancelEdit} className="flex-1 py-1 rounded-lg bg-gray-100 text-gray-500 text-sm font-semibold hover:bg-gray-200 cursor-pointer">ยกเลิก</button>
+                  <div key={i} className="bg-[#BDE8F5]/30 rounded-lg p-2 border-2 border-[#4988C4]">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2 mb-2">
+                      {editValues.map((val, j) => (
+                        <div key={j} className="relative">
+                          <span className="sm:hidden text-[8px] text-[#4988C4] absolute -top-1.5 left-1 bg-white px-0.5">
+                            {playerNames[j]}
+                          </span>
+                          <input
+                            type="number"
+                            value={val}
+                            onChange={(e) => {
+                              const updated = [...editValues];
+                              updated[j] = e.target.value;
+                              setEditValues(updated);
+                            }}
+                            onKeyDown={(e) => { if (e.key === 'Enter') handleSaveEdit(); if (e.key === 'Escape') handleCancelEdit(); }}
+                            className="w-full text-center text-sm sm:text-base font-semibold py-1 rounded-lg bg-white border border-gray-200 text-[#0F2854] focus:outline-none focus:ring-2 focus:ring-[#4988C4] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            autoFocus={j === 0}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={handleSaveEdit} className="flex-1 py-1 rounded-lg bg-[#1C4D8D] text-white text-xs sm:text-sm font-semibold hover:bg-[#0F2854] cursor-pointer">บันทึก</button>
+                      <button onClick={handleCancelEdit} className="flex-1 py-1 rounded-lg bg-gray-100 text-gray-500 text-xs sm:text-sm font-semibold hover:bg-gray-200 cursor-pointer">ยกเลิก</button>
                     </div>
                   </div>
                 ) : (
                   <div
                     key={i}
                     onClick={() => handleEditLog(i)}
-                    className={`grid grid-cols-4 gap-3 py-2 px-3 rounded-lg ${getLogRowStyle(entry.type)} ${entry.type === 'round' ? 'cursor-pointer hover:ring-2 hover:ring-[#4988C4]/30' : ''}`}
+                    className={`grid grid-cols-4 gap-1 sm:gap-3 py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg ${getLogRowStyle(entry.type)} ${entry.type === 'round' ? 'cursor-pointer hover:ring-2 hover:ring-[#4988C4]/30' : ''}`}
                   >
                     {entry.values.map((val, j) => (
-                      <div key={j} className="text-center font-semibold tabular-nums text-lg">
+                      <div key={j} className="text-center font-semibold tabular-nums text-xs sm:text-lg">
                         {getLogLabel(entry.type) && j === 0 && (
-                          <span className="text-xs font-normal opacity-60 block -mb-1">
+                          <span className="text-[8px] sm:text-xs font-normal opacity-60 block -mb-0.5 sm:-mb-1">
                             {getLogLabel(entry.type)}
                           </span>
                         )}
@@ -520,24 +526,24 @@ export default function DummyCalculator({ playerNames, roomId, onReset, onHistor
         )}
 
         {/* Back to setup */}
-        <div className="text-center mt-6 pb-8">
+        <div className="text-center mt-3 pb-6 sm:mt-6 sm:pb-8 flex justify-center items-center gap-1 sm:gap-0 flex-wrap">
           <button
             onClick={onReset}
-            className="text-[#4988C4] hover:text-[#0F2854] text-sm transition-all cursor-pointer"
+            className="text-[#4988C4] hover:text-[#0F2854] text-[11px] sm:text-sm transition-all cursor-pointer"
           >
             ← เปลี่ยนผู้เล่น
           </button>
-          <span className="text-gray-300 mx-2">|</span>
+          <span className="text-gray-300 mx-1 sm:mx-2">|</span>
           <button
             onClick={onHistory}
-            className="text-[#4988C4] hover:text-[#0F2854] text-sm transition-all cursor-pointer"
+            className="text-[#4988C4] hover:text-[#0F2854] text-[11px] sm:text-sm transition-all cursor-pointer"
           >
             🏆 ประวัติเกม
           </button>
-          <span className="text-gray-300 mx-2">|</span>
+          <span className="text-gray-300 mx-1 sm:mx-2">|</span>
           <button
             onClick={() => setShowHelp(true)}
-            className="text-[#4988C4] hover:text-[#0F2854] text-sm transition-all cursor-pointer"
+            className="text-[#4988C4] hover:text-[#0F2854] text-[11px] sm:text-sm transition-all cursor-pointer"
           >
             ❓ วิธีใช้งาน
           </button>

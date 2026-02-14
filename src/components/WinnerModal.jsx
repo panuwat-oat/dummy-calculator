@@ -31,18 +31,18 @@ export default function WinnerModal({ winner, prices, playerNames, onClose }) {
   }, []);
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md text-center animate-bounce-in">
-        <span className="text-7xl block mb-4">🏆</span>
-        <h2 className="text-3xl font-bold text-[#0F2854] mb-2">{winner} ชนะแล้ว!</h2>
-        <p className="text-[#4988C4] mb-6">สรุปผลการเล่น</p>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4">
+      <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl p-5 sm:p-8 w-full max-w-md text-center animate-bounce-in">
+        <span className="text-5xl sm:text-7xl block mb-2 sm:mb-4">🏆</span>
+        <h2 className="text-xl sm:text-3xl font-bold text-[#0F2854] mb-1 sm:mb-2">{winner} ชนะแล้ว!</h2>
+        <p className="text-[#4988C4] text-xs sm:text-base mb-4 sm:mb-6">สรุปผลการเล่น</p>
 
-        <div className="bg-[#BDE8F5]/30 rounded-2xl p-4 mb-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+        <div className="bg-[#BDE8F5]/30 rounded-xl sm:rounded-2xl p-3 sm:p-4 mb-4 sm:mb-6">
+          <div className="grid grid-cols-4 gap-1 sm:gap-2 text-xs sm:text-sm">
             {playerNames.map((name, i) => (
               <div key={i} className="text-center">
-                <p className="font-semibold text-[#4988C4] truncate">{name}</p>
-                <p className={`text-2xl font-bold ${prices[i] >= 0 ? 'text-[#1C4D8D]' : 'text-red-500'}`}>
+                <p className="font-semibold text-[#4988C4] truncate text-[10px] sm:text-sm">{name}</p>
+                <p className={`text-lg sm:text-2xl font-bold ${prices[i] >= 0 ? 'text-[#1C4D8D]' : 'text-red-500'}`}>
                   {prices[i] > 0 ? '+' : ''}{prices[i]}
                 </p>
               </div>
@@ -52,7 +52,7 @@ export default function WinnerModal({ winner, prices, playerNames, onClose }) {
 
         <button
           onClick={onClose}
-          className="bg-[#1C4D8D] text-white font-semibold px-8 py-3 rounded-xl hover:bg-[#0F2854] transition-all shadow-lg cursor-pointer"
+          className="bg-[#1C4D8D] text-white font-semibold px-6 py-2.5 sm:px-8 sm:py-3 rounded-xl hover:bg-[#0F2854] transition-all shadow-lg cursor-pointer text-sm sm:text-base"
         >
           เล่นต่อ
         </button>
