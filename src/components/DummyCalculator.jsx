@@ -99,6 +99,26 @@ export default function DummyCalculator({ playerNames, onReset }) {
     inputRefs.current[0]?.focus();
   };
 
+  const handleUndo = () => {
+    if (log.length === 0) return;
+    const lastRoundIndex = [...log].map((e, i) => ({ ...e, i })).filter(e => e.type === 'round').pop();
+    if (!lastRoundIndex) return;
+    const newLog = log.slice(0, lastRoundIndex.i);
+    const newScores = [0, 0, 0, 0];
+    newLog.forEach((entry) => {
+      if (entry.type === 'round') {
+        entry.values.forEach((v, i) => { newScores[i] += v; });
+      }
+    });
+    setScores(newScores);
+    setLog(newLog);
+    setWinner(null);
+    setWinnerPrices(null);
+    localStorage.setItem('gameScores', JSON.stringify(newScores));
+    localStorage.setItem('gameLog', JSON.stringify(newLog));
+    inputRefs.current[0]?.focus();
+  };
+
   const handleResetAll = () => {
     setScores([0, 0, 0, 0]);
     setInputs(['', '', '', '']);
@@ -188,8 +208,15 @@ export default function DummyCalculator({ playerNames, onReset }) {
               คำนวณ
             </button>
             <button
+              onClick={handleUndo}
+              disabled={log.filter(e => e.type === 'round').length === 0}
+              className="px-4 py-3 rounded-xl font-semibold text-lg bg-[#4988C4]/20 text-[#BDE8F5] border border-[#4988C4]/30 hover:bg-[#4988C4]/30 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+            >
+              ↩
+            </button>
+            <button
               onClick={handleResetAll}
-              className="px-6 py-3 rounded-xl font-semibold text-lg bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500/30 transition-all cursor-pointer"
+              className="px-4 py-3 rounded-xl font-semibold text-lg bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500/30 transition-all cursor-pointer"
             >
               รีเซ็ต
             </button>
