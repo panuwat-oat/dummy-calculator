@@ -77,14 +77,8 @@ export const clearGameHistory = async () => {
 export const saveLastPlayerNames = async (names) => {
     try {
         const userId = getUserId();
-        await apiCall('/settings', 'POST', {
+        await apiCall(`/settings?deviceId=${userId}`, 'POST', {
             lastPlayerNames: names
-        }); 
-        
-        await fetch(`${API_BASE}/settings?deviceId=${userId}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ lastPlayerNames: names })
         });
     } catch (error) {
         console.error("Error saving last player names:", error);
@@ -105,11 +99,7 @@ export const getLastPlayerNames = async () => {
 export const saveActiveGame = async (gameData) => {
     try {
         const userId = getUserId();
-        await fetch(`${API_BASE}/active?deviceId=${userId}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(gameData)
-        });
+        await apiCall(`/active?deviceId=${userId}`, 'POST', gameData);
     } catch (error) {
         console.error("Error saving active game:", error);
     }
