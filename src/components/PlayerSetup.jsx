@@ -1,10 +1,26 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { getLastPlayerNames, saveLastPlayerNames } from '../services/db';
 
 export default function PlayerSetup({ onStart, onHistory }) {
-  const [names, setNames] = useState(() => {
-    const saved = localStorage.getItem('lastPlayerNames');
-    return saved ? JSON.parse(saved) : ['', '', '', ''];
-  });
+  const [names, setNames] = useState(['', '', '', '']);
+
+  useEffect(() => {
+    const loadNames = async () => {
+      // Try local storage first for speed
+      const local = localStorage.getItem('lastPlayerNames');
+      if (local) {
+        setNames(JSON.parse(local));
+      }
+      
+      // Then try fetching from cloud to sync
+      const cloudNames = await getLastPlayerNames();
+      if (cloudNames) {
+        setNames(cloudNames);
+        localStorage.setItem('lastPlayerNames', JSON.stringify(cloudNames));
+      }
+    };
+    loadNames();
+  }, []);
 
   const handleChange = (index, value) => {
     const updated = [...names];
@@ -17,6 +33,7 @@ export default function PlayerSetup({ onStart, onHistory }) {
     if (names.some((n) => n.trim() === '')) return;
     const trimmedNames = names.map((n) => n.trim());
     localStorage.setItem('lastPlayerNames', JSON.stringify(trimmedNames));
+    saveLastPlayerNames(trimmedNames); // Sync to cloud
     onStart(trimmedNames);
   };
 

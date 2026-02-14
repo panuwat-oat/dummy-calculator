@@ -1,16 +1,32 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { getGameHistory, clearGameHistory } from '../services/db';
 
 export default function GameHistory({ onBack }) {
-  const [history, setHistory] = useState(() => {
-    const saved = localStorage.getItem('gameHistory');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleClear = () => {
+  useEffect(() => {
+    const loadHistory = async () => {
+      const data = await getGameHistory();
+      setHistory(data);
+      setLoading(false);
+    };
+    loadHistory();
+  }, []);
+
+  const handleClear = async () => {
     if (!window.confirm('ลบประวัติเกมทั้งหมด?')) return;
-    localStorage.removeItem('gameHistory');
+    await clearGameHistory();
     setHistory([]);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="text-[#0F2854] font-medium animate-pulse">กำลังโหลดข้อมูล...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">

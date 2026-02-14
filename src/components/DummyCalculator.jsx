@@ -1,5 +1,6 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import WinnerModal from './WinnerModal';
+import { saveActiveGame, subscribeToActiveGame, clearActiveGame, saveGameHistory } from '../services/db';
 
 const WINNING_SCORE = 500;
 
@@ -26,17 +27,40 @@ function checkPrice(num) {
 }
 
 export default function DummyCalculator({ playerNames, onReset, onHistory }) {
-  const [scores, setScores] = useState(() => {
-    const saved = localStorage.getItem('gameScores');
-    return saved ? JSON.parse(saved) : [0, 0, 0, 0];
-  });
+  const [scores, setScores] = useState([0, 0, 0, 0]);
   const [inputs, setInputs] = useState(['0', '0', '0', '0']);
-  const [log, setLog] = useState(() => {
-    const saved = localStorage.getItem('gameLog');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [log, setLog] = useState([]);
   const [winner, setWinner] = useState(null);
   const [winnerPrices, setWinnerPrices] = useState(null);
+  
+  // Load active game from Firestore
+  useEffect(() => {
+    const unsubscribe = subscribeToActiveGame((data) => {
+      if (data && data.active) {
+        setScores(data.scores || [0, 0, 0, 0]);
+        setLog(data.log || []);
+        if (data.playerNames && JSON.stringify(data.playerNames) !== JSON.stringify(playerNames)) {
+           // If names mismatch on load, we might want to update or warn, 
+           // but for now let's prioritize local setup or sync back if needed.
+           // However, to keep it simple, we trust the DB if it exists.
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Save active game to Firestore whenever state changes
+  useEffect(() => {
+    if (log.length > 0 || scores.some(s => s !== 0)) {
+        saveActiveGame({
+            active: true,
+            playerNames,
+            scores,
+            log
+        });
+    }
+  }, [scores, log, playerNames]);
+
   const [editingIndex, setEditingIndex] = useState(null);
   const [editValues, setEditValues] = useState(['', '', '', '']);
   const [focusedInput, setFocusedInput] = useState(0);
@@ -122,9 +146,8 @@ export default function DummyCalculator({ playerNames, onReset, onHistory }) {
       setWinner(playerNames[winnerIndex]);
       setWinnerPrices(prices);
 
-      // Save to game history
+      // Save to game history (Cloud)
       const gameResult = {
-        date: new Date().toISOString(),
         winner: playerNames[winnerIndex],
         rounds: newLog.filter(e => e.type === 'round').length,
         players: playerNames.map((name, idx) => ({
@@ -133,13 +156,12 @@ export default function DummyCalculator({ playerNames, onReset, onHistory }) {
           settlement: prices[idx],
         })),
       };
-      const history = JSON.parse(localStorage.getItem('gameHistory') || '[]');
-      history.push(gameResult);
-      localStorage.setItem('gameHistory', JSON.stringify(history));
+      saveGameHistory(gameResult);
     }
 
     setScores(newScores);
     setLog(newLog);
+    // Local storage backup (optional, keeping it doesn't hurt)
     localStorage.setItem('gameScores', JSON.stringify(newScores));
     localStorage.setItem('gameLog', JSON.stringify(newLog));
     setInputs(['0', '0', '0', '0']);
@@ -152,6 +174,7 @@ export default function DummyCalculator({ playerNames, onReset, onHistory }) {
     setLog([]);
     setWinner(null);
     setWinnerPrices(null);
+    clearActiveGame(); // Clear from cloud
     localStorage.setItem('gameScores', JSON.stringify([0, 0, 0, 0]));
     localStorage.removeItem('gameLog');
     inputRefs.current[0]?.focus();
@@ -206,6 +229,7 @@ export default function DummyCalculator({ playerNames, onReset, onHistory }) {
     setLog([]);
     setWinner(null);
     setWinnerPrices(null);
+    clearActiveGame(); // Clear from cloud
     localStorage.setItem('gameScores', JSON.stringify([0, 0, 0, 0]));
     localStorage.removeItem('gameLog');
   };
