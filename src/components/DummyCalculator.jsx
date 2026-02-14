@@ -110,7 +110,7 @@ export default function DummyCalculator({ playerNames, onReset }) {
   };
 
   const getScoreColor = (score) => {
-    if (score > 0) return 'text-emerald-400';
+    if (score > 0) return 'text-[#BDE8F5]';
     if (score < 0) return 'text-red-400';
     return 'text-white/60';
   };
@@ -118,9 +118,9 @@ export default function DummyCalculator({ playerNames, onReset }) {
   const getLogRowStyle = (type) => {
     switch (type) {
       case 'price_units':
-        return 'bg-amber-500/20 text-amber-300';
+        return 'bg-[#4988C4]/20 text-[#BDE8F5]';
       case 'settlement':
-        return 'bg-fuchsia-500/20 text-fuchsia-300';
+        return 'bg-[#0F2854]/40 text-white';
       default:
         return 'text-white/80';
     }
@@ -138,7 +138,7 @@ export default function DummyCalculator({ playerNames, onReset }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-purple-900 to-fuchsia-900 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#0F2854] via-[#1C4D8D] to-[#4988C4] p-4">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="text-center pt-4 pb-6">
@@ -148,11 +148,11 @@ export default function DummyCalculator({ playerNames, onReset }) {
         </div>
 
         {/* Scoreboard */}
-        <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 shadow-2xl p-5 mb-4">
+        <div className="bg-[#1C4D8D]/60 backdrop-blur-xl rounded-2xl border border-[#BDE8F5]/20 shadow-2xl p-5 mb-4">
           <div className="grid grid-cols-4 gap-3">
             {playerNames.map((name, i) => (
               <div key={i} className="text-center">
-                <p className="text-purple-200 text-sm font-medium truncate mb-1">{name}</p>
+                <p className="text-[#BDE8F5] text-sm font-medium truncate mb-1">{name}</p>
                 <p className={`text-3xl md:text-4xl font-bold tabular-nums ${getScoreColor(scores[i])}`}>
                   {scores[i]}
                 </p>
@@ -162,7 +162,7 @@ export default function DummyCalculator({ playerNames, onReset }) {
         </div>
 
         {/* Input Row */}
-        <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 shadow-2xl p-5 mb-4">
+        <div className="bg-[#1C4D8D]/60 backdrop-blur-xl rounded-2xl border border-[#BDE8F5]/20 shadow-2xl p-5 mb-4">
           <div className="grid grid-cols-4 gap-3 mb-4">
             {inputs.map((val, i) => (
               <input
@@ -173,7 +173,7 @@ export default function DummyCalculator({ playerNames, onReset }) {
                 onChange={(e) => handleInputChange(i, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(e, i)}
                 placeholder="0"
-                className="w-full text-center text-xl font-semibold py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-fuchsia-400 focus:border-transparent transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                className="w-full text-center text-xl font-semibold py-3 rounded-xl bg-white/10 border border-[#BDE8F5]/20 text-white placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-[#4988C4] focus:border-transparent transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 autoFocus={i === 0}
               />
             ))}
@@ -183,7 +183,7 @@ export default function DummyCalculator({ playerNames, onReset }) {
             <button
               onClick={handleCalculate}
               disabled={inputs.some((v) => v === '' || isNaN(parseInt(v)))}
-              className="flex-1 py-3 rounded-xl font-semibold text-lg bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white hover:from-fuchsia-600 hover:to-purple-700 shadow-lg hover:shadow-fuchsia-500/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              className="flex-1 py-3 rounded-xl font-semibold text-lg bg-gradient-to-r from-[#4988C4] to-[#1C4D8D] text-white hover:from-[#BDE8F5] hover:to-[#4988C4] hover:text-[#0F2854] shadow-lg hover:shadow-[#4988C4]/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
               คำนวณ
             </button>
@@ -198,7 +198,7 @@ export default function DummyCalculator({ playerNames, onReset }) {
 
         {/* Log */}
         {log.length > 0 && (
-          <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 shadow-2xl p-5">
+          <div className="bg-[#1C4D8D]/60 backdrop-blur-xl rounded-2xl border border-[#BDE8F5]/20 shadow-2xl p-5">
             <h2 className="text-white font-semibold mb-3 text-sm uppercase tracking-wider">
               📋 บันทึกคะแนน
             </h2>
@@ -228,7 +228,7 @@ export default function DummyCalculator({ playerNames, onReset }) {
         <div className="text-center mt-6 pb-8">
           <button
             onClick={onReset}
-            className="text-purple-300/60 hover:text-purple-200 text-sm transition-all cursor-pointer"
+            className="text-[#BDE8F5]/60 hover:text-white text-sm transition-all cursor-pointer"
           >
             ← เปลี่ยนผู้เล่น
           </button>
