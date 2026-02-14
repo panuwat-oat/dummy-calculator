@@ -40,6 +40,8 @@ export default function DummyCalculator({ playerNames, onReset, onHistory }) {
   const [editingIndex, setEditingIndex] = useState(null);
   const [editValues, setEditValues] = useState(['', '', '', '']);
   const [focusedInput, setFocusedInput] = useState(0);
+  const [editingNameIndex, setEditingNameIndex] = useState(null);
+  const [tempName, setTempName] = useState('');
   const inputRefs = useRef([]);
 
   const handleQuickAdd = (amount) => {
@@ -48,6 +50,26 @@ export default function DummyCalculator({ playerNames, onReset, onHistory }) {
     updated[focusedInput] = String(current + amount);
     setInputs(updated);
     inputRefs.current[focusedInput]?.focus();
+  };
+
+  const handleEditName = (index) => {
+    setEditingNameIndex(index);
+    setTempName(playerNames[index]);
+  };
+
+  const handleSaveName = () => {
+    if (!tempName.trim()) return;
+    const newNames = [...playerNames];
+    newNames[editingNameIndex] = tempName.trim();
+    localStorage.setItem('playerNames', JSON.stringify(newNames));
+    // Update App state via callback
+    window.dispatchEvent(new CustomEvent('updatePlayerNames', { detail: newNames }));
+    setEditingNameIndex(null);
+  };
+
+  const handleCancelEditName = () => {
+    setEditingNameIndex(null);
+    setTempName('');
   };
 
   const recalcScores = (logData) => {
@@ -245,7 +267,27 @@ export default function DummyCalculator({ playerNames, onReset, onHistory }) {
           <div className="grid grid-cols-4 gap-3 mb-4">
             {inputs.map((val, i) => (
               <div key={i} className="flex flex-col items-center gap-1.5">
-                <p className="text-[#4988C4] text-xs font-medium truncate w-full text-center">{playerNames[i]}</p>
+                {editingNameIndex === i ? (
+                  <div className="flex gap-1 w-full">
+                    <input
+                      type="text"
+                      value={tempName}
+                      onChange={(e) => setTempName(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleSaveName(); if (e.key === 'Escape') handleCancelEditName(); }}
+                      className="flex-1 px-1 py-0.5 text-xs font-medium bg-white border border-[#4988C4] text-[#0F2854] rounded focus:outline-none focus:ring-1 focus:ring-[#4988C4]"
+                      autoFocus
+                    />
+                    <button onClick={handleSaveName} className="px-1 py-0.5 text-xs bg-[#1C4D8D] text-white rounded hover:bg-[#0F2854] cursor-pointer">✓</button>
+                    <button onClick={handleCancelEditName} className="px-1 py-0.5 text-xs bg-gray-100 text-gray-500 rounded hover:bg-gray-200 cursor-pointer">✕</button>
+                  </div>
+                ) : (
+                  <p 
+                    onClick={() => handleEditName(i)}
+                    className="text-[#4988C4] text-xs font-medium truncate w-full text-center cursor-pointer hover:text-[#1C4D8D] hover:bg-gray-50 rounded px-1 py-0.5 transition-all"
+                  >
+                    {playerNames[i]}
+                  </p>
+                )}
                 {/* + buttons */}
                 <div className="flex gap-1 w-full justify-center">
                   {[5, 10, 50, 100].map((n) => (

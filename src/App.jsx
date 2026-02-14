@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PlayerSetup from './components/PlayerSetup';
 import DummyCalculator from './components/DummyCalculator';
 import GameHistory from './components/GameHistory';
@@ -9,6 +9,14 @@ function App() {
     return saved ? JSON.parse(saved) : null;
   });
   const [page, setPage] = useState('game');
+
+  useEffect(() => {
+    const handleUpdatePlayerNames = (e) => {
+      setPlayerNames(e.detail);
+    };
+    window.addEventListener('updatePlayerNames', handleUpdatePlayerNames);
+    return () => window.removeEventListener('updatePlayerNames', handleUpdatePlayerNames);
+  }, []);
 
   if (page === 'history') {
     return <GameHistory onBack={() => setPage('game')} />;
