@@ -1,0 +1,39 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to check if user owns the document (for personal history)
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // User Settings (Last player names)
+    match /user_settings/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Active Games (One per user)
+    match /active_games/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Game History
+    match /game_history/{document=**} {
+      // Allow create if deviceId matches user uid
+      allow create: if isOwner(request.resource.data.deviceId);
+      // Allow read/delete only own history
+      allow read, delete: if isOwner(resource.data.deviceId);
+    }
+
+    // Rooms (Multiplayer)
+    match /rooms/{roomId} {
+      // Allow anyone to read/write if they know the roomId (Public for players)
+      // In production, you might want to restrict this further, but for this game, sharing ID is enough
+      allow read, write: if true; 
+    }
+  }
+}
