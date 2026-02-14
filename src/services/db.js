@@ -1,5 +1,4 @@
-import { db, auth } from '../firebase';
-import { collection, addDoc, query, where, orderBy, getDocs, doc, setDoc, onSnapshot, serverTimestamp, runTransaction } from 'firebase/firestore';
+import { auth } from '../firebase';
 
 const DEVICE_ID_KEY = 'dummy_calculator_device_id';
 
@@ -16,17 +15,38 @@ const getUserId = () => {
     return auth.currentUser ? auth.currentUser.uid : getDeviceId();
 };
 
-// History Collection
-const HISTORY_COLLECTION = 'game_history';
+// --- API Helpers ---
+
+const API_BASE = '/api';
+
+const apiCall = async (endpoint, method = 'GET', body = null) => {
+    try {
+        const options = {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+        };
+        if (body) options.body = JSON.stringify(body);
+        
+        const res = await fetch(`${API_BASE}${endpoint}`, options);
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'API Error');
+        }
+        return await res.json();
+    } catch (error) {
+        console.error(`API Call Error (${endpoint}):`, error);
+        throw error;
+    }
+};
+
+// --- Game History ---
 
 export const saveGameHistory = async (gameData) => {
   try {
     const userId = getUserId();
-    await addDoc(collection(db, HISTORY_COLLECTION), {
-      ...gameData,
-      deviceId: userId, // Use userId (auth uid or deviceId)
-      createdAt: serverTimestamp(),
-      date: new Date().toISOString() // Keep string date for compatibility
+    await apiCall('/history', 'POST', {
+        deviceId: userId,
+        ...gameData
     });
   } catch (error) {
     console.error("Error saving game history:", error);
@@ -36,13 +56,7 @@ export const saveGameHistory = async (gameData) => {
 export const getGameHistory = async () => {
   try {
     const userId = getUserId();
-    const q = query(
-      collection(db, HISTORY_COLLECTION),
-      where("deviceId", "==", userId),
-      orderBy("createdAt", "desc")
-    );
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return await apiCall(`/history?deviceId=${userId}`);
   } catch (error) {
     console.error("Error getting game history:", error);
     return [];
@@ -50,36 +64,15 @@ export const getGameHistory = async () => {
 };
 
 export const clearGameHistory = async () => {
-    // Note: Deleting collection in client is not recommended for large collections
-    // For now we just won't implement clear all on server for safety, 
-    // or we could delete them one by one.
-    // Let's leave it as a future todo or implement deletion one by one.
     try {
         const userId = getUserId();
-        const q = query(
-            collection(db, HISTORY_COLLECTION),
-            where("deviceId", "==", userId)
-        );
-        const querySnapshot = await getDocs(q);
-        // Delete all docs (batching would be better but simple loop for now)
-        // Ideally we shouldn't do this often.
-        // For this task, maybe just clear local view? 
-        console.warn("Clearing cloud history is not fully implemented to save quota.");
+        await apiCall(`/history?deviceId=${userId}`, 'DELETE');
     } catch (error) {
         console.error("Error clearing history:", error);
     }
 };
 
-// Room Collection (Multiplayer)
-const ROOMS_COLLECTION = 'rooms';
-
-// Helper for timeout
-const withTimeout = (promise, ms = 5000) => {
-    return Promise.race([
-        promise,
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Connection timeout')), ms))
-    ]);
-};
+// --- Multiplayer Rooms ---
 
 export const createRoom = async (initialNames) => {
     try {
@@ -90,19 +83,12 @@ export const createRoom = async (initialNames) => {
         const names = [...initialNames];
         while (names.length < 4) names.push('');
 
-        const initialData = {
+        await apiCall('/room', 'POST', {
             roomId,
             hostId: userId,
-            createdAt: serverTimestamp(),
-            playerNames: names,
-            scores: [0, 0, 0, 0],
-            log: [],
-            status: 'waiting',
-            winner: null
-        };
+            playerNames: names
+        });
         
-        // Wrap setDoc with timeout
-        await withTimeout(setDoc(doc(db, ROOMS_COLLECTION, roomId), initialData));
         return roomId;
     } catch (error) {
         console.error("Error creating room:", error);
@@ -112,50 +98,39 @@ export const createRoom = async (initialNames) => {
 
 export const checkRoomExists = async (roomId) => {
     try {
-        const roomRef = doc(db, ROOMS_COLLECTION, roomId);
-        // Wrap getDoc with timeout
-        const roomSnap = await withTimeout(import('firebase/firestore').then(mod => mod.getDoc(roomRef)));
-        return roomSnap.exists();
+        await apiCall(`/room?id=${roomId}`);
+        return true;
     } catch (error) {
-        console.error("Error checking room:", error);
         return false;
     }
 };
 
 export const joinRoom = async (roomId, playerName) => {
     try {
-        const roomRef = doc(db, ROOMS_COLLECTION, roomId);
-        let currentNames = [];
+        const room = await apiCall(`/room?id=${roomId}`);
+        let currentNames = room.player_names || ['', '', '', ''];
 
-        // Wrap transaction with timeout
-        const transactionResult = await withTimeout(runTransaction(db, async (transaction) => {
-            const roomDoc = await transaction.get(roomRef);
-            if (!roomDoc.exists()) {
-                throw new Error("Room does not exist!");
-            }
+        // Find empty slot
+        const emptyIndex = currentNames.findIndex(n => n === '' || n.trim() === '');
+        
+        // Or check if this player is already in the room (re-joining)
+        const existingIndex = currentNames.findIndex(n => n === playerName);
 
-            const data = roomDoc.data();
-            currentNames = [...(data.playerNames || ['', '', '', ''])];
+        if (existingIndex !== -1) {
+            return currentNames;
+        }
 
-            // Find empty slot
-            const emptyIndex = currentNames.findIndex(n => n === '' || n.trim() === '');
-            
-            // Or check if this player is already in the room (re-joining)
-            const existingIndex = currentNames.findIndex(n => n === playerName);
+        if (emptyIndex === -1) {
+            throw new Error("Room is full!");
+        }
 
-            if (existingIndex !== -1) {
-                // Player already in room, do nothing, just return current state
-                return;
-            }
-
-            if (emptyIndex === -1) {
-                throw new Error("Room is full!");
-            }
-
-            // Occupy the slot
-            currentNames[emptyIndex] = playerName;
-            transaction.update(roomRef, { playerNames: currentNames });
-        }));
+        // Occupy the slot
+        currentNames[emptyIndex] = playerName;
+        
+        await apiCall('/room', 'PUT', {
+            roomId,
+            playerNames: currentNames
+        });
 
         return currentNames;
     } catch (error) {
@@ -164,43 +139,72 @@ export const joinRoom = async (roomId, playerName) => {
     }
 };
 
-// Better approach: Update the entire game state from the host, 
-// and clients just listen. Clients can send actions to update specific things.
-// For this simple calculator, maybe allow anyone to update anything? 
-// Yes, for "friends playing together", shared control is fine.
-
 export const updateRoomState = async (roomId, data) => {
     try {
-        const roomRef = doc(db, ROOMS_COLLECTION, roomId);
-        await setDoc(roomRef, {
-            ...data,
-            updatedAt: serverTimestamp()
-        }, { merge: true });
+        await apiCall('/room', 'PUT', {
+            roomId,
+            ...data
+        });
     } catch (error) {
         console.error("Error updating room:", error);
     }
 };
 
+// Polling for Room Subscription
 export const subscribeToRoom = (roomId, callback) => {
-    return onSnapshot(doc(db, ROOMS_COLLECTION, roomId), (doc) => {
-        if (doc.exists()) {
-            callback(doc.data());
-        } else {
-            callback(null);
+    let isActive = true;
+    
+    const poll = async () => {
+        if (!isActive) return;
+        try {
+            const room = await apiCall(`/room?id=${roomId}`);
+            if (isActive) {
+                // Map DB keys to app keys if necessary (snake_case to camelCase)
+                // Postgres returns `player_names`, app expects `playerNames`
+                const mappedData = {
+                    ...room,
+                    playerNames: room.player_names,
+                    scores: room.scores,
+                    log: room.log,
+                    status: room.status,
+                    winner: room.winner
+                };
+                callback(mappedData);
+            }
+        } catch (error) {
+            // Room might be gone or error
+            console.warn("Polling error:", error);
         }
-    });
+    };
+
+    // Initial fetch
+    poll();
+    
+    // Poll every 2 seconds
+    const interval = setInterval(poll, 2000);
+
+    return () => {
+        isActive = false;
+        clearInterval(interval);
+    };
 };
 
-// User Preferences / Settings (e.g. last player names)
-const SETTINGS_COLLECTION = 'user_settings';
+// --- User Settings ---
 
 export const saveLastPlayerNames = async (names) => {
     try {
         const userId = getUserId();
-        await setDoc(doc(db, SETTINGS_COLLECTION, userId), {
-            lastPlayerNames: names,
-            updatedAt: serverTimestamp()
-        }, { merge: true });
+        await apiCall('/settings', 'POST', {
+            lastPlayerNames: names
+        }); // Pass userId via query in apiCall? No, handler expects body or query.
+        // Wait, handler expects deviceId in query for POST too? 
+        // Let's fix the call:
+        // My handler for POST uses query for deviceId too.
+        await fetch(`${API_BASE}/settings?deviceId=${userId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lastPlayerNames: names })
+        });
     } catch (error) {
         console.error("Error saving last player names:", error);
     }
@@ -209,58 +213,65 @@ export const saveLastPlayerNames = async (names) => {
 export const getLastPlayerNames = async () => {
     try {
         const userId = getUserId();
-        const docRef = doc(db, SETTINGS_COLLECTION, userId);
-        // Better:
-        const d = await import('firebase/firestore').then(mod => mod.getDoc(docRef));
-        
-        if (d.exists()) {
-            return d.data().lastPlayerNames || null;
-        }
-        return null;
+        return await apiCall(`/settings?deviceId=${userId}`);
     } catch (error) {
-        if (error.code !== 'unavailable' && !error.message?.includes('offline')) {
-            console.error("Error getting last player names:", error);
-        }
         return null;
     }
 };
 
-// Active Game Collection (for real-time persistence)
-const GAMES_COLLECTION = 'active_games';
+// --- Active Game (Single Player) ---
 
 export const saveActiveGame = async (gameData) => {
     try {
         const userId = getUserId();
-        // We use userId as docId for simplicity to have one active game per device/user
-        await setDoc(doc(db, GAMES_COLLECTION, userId), {
-            ...gameData,
-            updatedAt: serverTimestamp()
+        await fetch(`${API_BASE}/active?deviceId=${userId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(gameData)
         });
     } catch (error) {
         console.error("Error saving active game:", error);
     }
 };
 
-export const subscribeToActiveGame = (callback) => {
-    const userId = getUserId();
-    return onSnapshot(doc(db, GAMES_COLLECTION, userId), (doc) => {
-        if (doc.exists()) {
-            callback(doc.data());
-        } else {
-            callback(null);
-        }
-    });
-};
-
 export const clearActiveGame = async () => {
     try {
         const userId = getUserId();
-        // Instead of delete, just set empty/null state or specific flag
-        await setDoc(doc(db, GAMES_COLLECTION, userId), {
-            active: false,
-            updatedAt: serverTimestamp()
-        });
+        await apiCall(`/active?deviceId=${userId}`, 'DELETE');
     } catch (error) {
         console.error("Error clearing active game:", error);
     }
+};
+
+// Polling for Active Game
+export const subscribeToActiveGame = (callback) => {
+    const userId = getUserId();
+    let isActive = true;
+
+    const poll = async () => {
+        if (!isActive) return;
+        try {
+            const data = await apiCall(`/active?deviceId=${userId}`);
+            if (isActive && data) {
+                const mappedData = {
+                    ...data,
+                    playerNames: data.player_names,
+                    // scores/log usually match
+                };
+                callback(mappedData);
+            } else if (isActive && !data) {
+                callback(null);
+            }
+        } catch (error) {
+            // Ignore errors or callback(null)
+        }
+    };
+
+    poll();
+    const interval = setInterval(poll, 2000);
+
+    return () => {
+        isActive = false;
+        clearInterval(interval);
+    };
 };
