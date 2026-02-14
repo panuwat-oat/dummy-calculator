@@ -67,25 +67,68 @@ export const clearGameHistory = async () => {
     }
 };
 
-// Active Game Collection (for real-time persistence)
-const GAMES_COLLECTION = 'active_games';
+// Room Collection (Multiplayer)
+const ROOMS_COLLECTION = 'rooms';
 
-export const saveActiveGame = async (gameData) => {
+export const createRoom = async (hostName) => {
     try {
+        const roomId = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digit code
         const deviceId = getDeviceId();
-        // We use deviceId as docId for simplicity to have one active game per device
-        await setDoc(doc(db, GAMES_COLLECTION, deviceId), {
-            ...gameData,
-            updatedAt: serverTimestamp()
-        });
+        
+        const initialData = {
+            roomId,
+            hostId: deviceId,
+            createdAt: serverTimestamp(),
+            playerNames: [hostName, '', '', ''], // Host is P1 by default
+            scores: [0, 0, 0, 0],
+            log: [],
+            status: 'waiting',
+            winner: null
+        };
+        
+        await setDoc(doc(db, ROOMS_COLLECTION, roomId), initialData);
+        return roomId;
     } catch (error) {
-        console.error("Error saving active game:", error);
+        console.error("Error creating room:", error);
+        throw error;
     }
 };
 
-export const subscribeToActiveGame = (callback) => {
-    const deviceId = getDeviceId();
-    return onSnapshot(doc(db, GAMES_COLLECTION, deviceId), (doc) => {
+export const checkRoomExists = async (roomId) => {
+    try {
+        const roomRef = doc(db, ROOMS_COLLECTION, roomId);
+        const roomSnap = await import('firebase/firestore').then(mod => mod.getDoc(roomRef));
+        return roomSnap.exists();
+    } catch (error) {
+        console.error("Error checking room:", error);
+        return false;
+    }
+};
+
+export const joinRoom = async (roomId, playerName) => {
+    // Just a placeholder for now, main logic is in subscribing
+    return checkRoomExists(roomId);
+};
+
+// Better approach: Update the entire game state from the host, 
+// and clients just listen. Clients can send actions to update specific things.
+// For this simple calculator, maybe allow anyone to update anything? 
+// Yes, for "friends playing together", shared control is fine.
+
+export const updateRoomState = async (roomId, data) => {
+    try {
+        const roomRef = doc(db, ROOMS_COLLECTION, roomId);
+        await setDoc(roomRef, {
+            ...data,
+            updatedAt: serverTimestamp()
+        }, { merge: true });
+    } catch (error) {
+        console.error("Error updating room:", error);
+    }
+};
+
+export const subscribeToRoom = (roomId, callback) => {
+    return onSnapshot(doc(db, ROOMS_COLLECTION, roomId), (doc) => {
         if (doc.exists()) {
             callback(doc.data());
         } else {
@@ -94,18 +137,6 @@ export const subscribeToActiveGame = (callback) => {
     });
 };
 
-export const clearActiveGame = async () => {
-    try {
-        const deviceId = getDeviceId();
-        // Instead of delete, just set empty/null state or specific flag
-        await setDoc(doc(db, GAMES_COLLECTION, deviceId), {
-            active: false,
-            updatedAt: serverTimestamp()
-        });
-    } catch (error) {
-        console.error("Error clearing active game:", error);
-    }
-};
 
 // User Preferences / Settings (e.g. last player names)
 const SETTINGS_COLLECTION = 'user_settings';

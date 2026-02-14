@@ -8,6 +8,7 @@ function App() {
     const saved = localStorage.getItem('playerNames');
     return saved ? JSON.parse(saved) : null;
   });
+  const [roomId, setRoomId] = useState(localStorage.getItem('activeRoomId'));
   const [page, setPage] = useState('game');
 
   useEffect(() => {
@@ -22,21 +23,33 @@ function App() {
     return <GameHistory onBack={() => setPage('game')} />;
   }
 
-  if (!playerNames) {
-    return <PlayerSetup onStart={(names) => {
-      localStorage.setItem('playerNames', JSON.stringify(names));
-      setPlayerNames(names);
-    }} onHistory={() => setPage('history')} />;
+  if (!playerNames && !roomId) {
+    return (
+      <PlayerSetup 
+        onStart={(names, id = null) => {
+          localStorage.setItem('playerNames', JSON.stringify(names));
+          if (id) {
+            localStorage.setItem('activeRoomId', id);
+            setRoomId(id);
+          }
+          setPlayerNames(names);
+        }} 
+        onHistory={() => setPage('history')} 
+      />
+    );
   }
 
   return (
     <DummyCalculator
       playerNames={playerNames}
+      roomId={roomId}
       onReset={() => {
         localStorage.removeItem('playerNames');
         localStorage.removeItem('gameScores');
         localStorage.removeItem('gameLog');
+        localStorage.removeItem('activeRoomId');
         setPlayerNames(null);
+        setRoomId(null);
       }}
       onHistory={() => setPage('history')}
     />
