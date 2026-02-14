@@ -207,7 +207,9 @@ export const getLastPlayerNames = async () => {
         }
         return null;
     } catch (error) {
-        console.error("Error getting last player names:", error);
+        if (error.code !== 'unavailable' && !error.message?.includes('offline')) {
+            console.error("Error getting last player names:", error);
+        }
         return null;
     }
 };
