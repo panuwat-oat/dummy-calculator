@@ -242,10 +242,24 @@ export default function DummyCalculator({ playerNames, onReset, onHistory }) {
 
         {/* Input Row */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-lg p-5 mb-4">
-          <div className="grid grid-cols-4 gap-3 mb-3">
+          <div className="grid grid-cols-4 gap-3 mb-4">
             {inputs.map((val, i) => (
-              <div key={i} className="flex flex-col items-center">
-                <p className="text-[#4988C4] text-xs font-medium truncate mb-1 w-full text-center">{playerNames[i]}</p>
+              <div key={i} className="flex flex-col items-center gap-1.5">
+                <p className="text-[#4988C4] text-xs font-medium truncate w-full text-center">{playerNames[i]}</p>
+                {/* + buttons */}
+                <div className="flex gap-1 w-full justify-center">
+                  {[5, 10, 50, 100].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => { const updated = [...inputs]; updated[i] = String((parseInt(updated[i]) || 0) + n); setInputs(updated); inputRefs.current[i]?.focus(); }}
+                      className="flex-1 py-1 rounded-md text-[10px] font-bold bg-[#BDE8F5]/50 text-[#1C4D8D] border border-[#BDE8F5] hover:bg-[#BDE8F5] transition-all cursor-pointer leading-tight"
+                    >
+                      +{n}
+                    </button>
+                  ))}
+                </div>
+                {/* Input */}
                 <input
                   ref={(el) => (inputRefs.current[i] = el)}
                   type="number"
@@ -257,28 +271,19 @@ export default function DummyCalculator({ playerNames, onReset, onHistory }) {
                   className={`w-full text-center text-xl font-semibold py-3 rounded-xl bg-gray-50 border text-[#0F2854] placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4988C4] focus:border-transparent transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${focusedInput === i ? 'border-[#4988C4]' : 'border-gray-200'}`}
                   autoFocus={i === 0}
                 />
-              </div>
-            ))}
-          </div>
-
-          {/* Quick Add Buttons */}
-          <div className="flex flex-wrap gap-2 justify-center mb-4">
-            {[5, 10, 50, 100].map((n) => (
-              <div key={n} className="flex gap-1">
-                <button
-                  type="button"
-                  onClick={() => handleQuickAdd(-n)}
-                  className="px-2 py-1 rounded-lg text-xs font-semibold bg-red-50 text-red-400 border border-red-100 hover:bg-red-100 transition-all cursor-pointer"
-                >
-                  −{n}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickAdd(n)}
-                  className="px-2 py-1 rounded-lg text-xs font-semibold bg-[#BDE8F5]/50 text-[#1C4D8D] border border-[#BDE8F5] hover:bg-[#BDE8F5] transition-all cursor-pointer"
-                >
-                  +{n}
-                </button>
+                {/* - buttons */}
+                <div className="flex gap-1 w-full justify-center">
+                  {[5, 10, 50, 100].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => { const updated = [...inputs]; updated[i] = String((parseInt(updated[i]) || 0) - n); setInputs(updated); inputRefs.current[i]?.focus(); }}
+                      className="flex-1 py-1 rounded-md text-[10px] font-bold bg-red-50 text-red-400 border border-red-100 hover:bg-red-100 transition-all cursor-pointer leading-tight"
+                    >
+                      −{n}
+                    </button>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
