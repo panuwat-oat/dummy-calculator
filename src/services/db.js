@@ -73,6 +73,14 @@ export const clearGameHistory = async () => {
 // Room Collection (Multiplayer)
 const ROOMS_COLLECTION = 'rooms';
 
+// Helper for timeout
+const withTimeout = (promise, ms = 5000) => {
+    return Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Connection timeout')), ms))
+    ]);
+};
+
 export const createRoom = async (initialNames) => {
     try {
         const roomId = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digit code
@@ -93,7 +101,8 @@ export const createRoom = async (initialNames) => {
             winner: null
         };
         
-        await setDoc(doc(db, ROOMS_COLLECTION, roomId), initialData);
+        // Wrap setDoc with timeout
+        await withTimeout(setDoc(doc(db, ROOMS_COLLECTION, roomId), initialData));
         return roomId;
     } catch (error) {
         console.error("Error creating room:", error);
@@ -104,7 +113,8 @@ export const createRoom = async (initialNames) => {
 export const checkRoomExists = async (roomId) => {
     try {
         const roomRef = doc(db, ROOMS_COLLECTION, roomId);
-        const roomSnap = await import('firebase/firestore').then(mod => mod.getDoc(roomRef));
+        // Wrap getDoc with timeout
+        const roomSnap = await withTimeout(import('firebase/firestore').then(mod => mod.getDoc(roomRef)));
         return roomSnap.exists();
     } catch (error) {
         console.error("Error checking room:", error);
@@ -117,7 +127,8 @@ export const joinRoom = async (roomId, playerName) => {
         const roomRef = doc(db, ROOMS_COLLECTION, roomId);
         let currentNames = [];
 
-        await runTransaction(db, async (transaction) => {
+        // Wrap transaction with timeout
+        const transactionResult = await withTimeout(runTransaction(db, async (transaction) => {
             const roomDoc = await transaction.get(roomRef);
             if (!roomDoc.exists()) {
                 throw new Error("Room does not exist!");
@@ -144,7 +155,7 @@ export const joinRoom = async (roomId, playerName) => {
             // Occupy the slot
             currentNames[emptyIndex] = playerName;
             transaction.update(roomRef, { playerNames: currentNames });
-        });
+        }));
 
         return currentNames;
     } catch (error) {

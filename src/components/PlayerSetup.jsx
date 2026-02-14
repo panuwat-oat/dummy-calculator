@@ -117,7 +117,11 @@ export default function PlayerSetup({ onStart, onHistory }) {
         roomId = await createRoom(trimmedNames);
       } catch (e) {
         console.error(e);
-        setError('สร้างห้องไม่สำเร็จ');
+        if (e.message === 'Connection timeout') {
+          setError('เชื่อมต่อเซิร์ฟเวอร์ไม่สำเร็จ กรุณาลองใหม่');
+        } else {
+          setError('สร้างห้องไม่สำเร็จ: ' + e.message);
+        }
         setLoading(false);
         return;
       }
