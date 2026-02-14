@@ -25,7 +25,7 @@ function checkPrice(num) {
   return sum;
 }
 
-export default function DummyCalculator({ playerNames, onReset }) {
+export default function DummyCalculator({ playerNames, onReset, onHistory }) {
   const [scores, setScores] = useState(() => {
     const saved = localStorage.getItem('gameScores');
     return saved ? JSON.parse(saved) : [0, 0, 0, 0];
@@ -37,7 +37,19 @@ export default function DummyCalculator({ playerNames, onReset }) {
   });
   const [winner, setWinner] = useState(null);
   const [winnerPrices, setWinnerPrices] = useState(null);
+  const [editingIndex, setEditingIndex] = useState(null);
+  const [editValues, setEditValues] = useState(['', '', '', '']);
   const inputRefs = useRef([]);
+
+  const recalcScores = (logData) => {
+    const newScores = [0, 0, 0, 0];
+    logData.forEach((entry) => {
+      if (entry.type === 'round') {
+        entry.values.forEach((v, i) => { newScores[i] += v; });
+      }
+    });
+    return newScores;
+  };
 
   const handleInputChange = (index, value) => {
     const updated = [...inputs];
@@ -78,6 +90,21 @@ export default function DummyCalculator({ playerNames, onReset }) {
 
       setWinner(playerNames[winnerIndex]);
       setWinnerPrices(prices);
+
+      // Save to game history
+      const gameResult = {
+        date: new Date().toISOString(),
+        winner: playerNames[winnerIndex],
+        rounds: newLog.filter(e => e.type === 'round').length,
+        players: playerNames.map((name, idx) => ({
+          name,
+          score: newScores[idx],
+          settlement: prices[idx],
+        })),
+      };
+      const history = JSON.parse(localStorage.getItem('gameHistory') || '[]');
+      history.push(gameResult);
+      localStorage.setItem('gameHistory', JSON.stringify(history));
     }
 
     setScores(newScores);
@@ -105,12 +132,7 @@ export default function DummyCalculator({ playerNames, onReset }) {
     const lastRoundIndex = [...log].map((e, i) => ({ ...e, i })).filter(e => e.type === 'round').pop();
     if (!lastRoundIndex) return;
     const newLog = log.slice(0, lastRoundIndex.i);
-    const newScores = [0, 0, 0, 0];
-    newLog.forEach((entry) => {
-      if (entry.type === 'round') {
-        entry.values.forEach((v, i) => { newScores[i] += v; });
-      }
-    });
+    const newScores = recalcScores(newLog);
     setScores(newScores);
     setLog(newLog);
     setWinner(null);
@@ -118,6 +140,32 @@ export default function DummyCalculator({ playerNames, onReset }) {
     localStorage.setItem('gameScores', JSON.stringify(newScores));
     localStorage.setItem('gameLog', JSON.stringify(newLog));
     inputRefs.current[0]?.focus();
+  };
+
+  const handleEditLog = (index) => {
+    if (log[index].type !== 'round') return;
+    setEditingIndex(index);
+    setEditValues(log[index].values.map(String));
+  };
+
+  const handleSaveEdit = () => {
+    if (editValues.some((v) => v === '' || isNaN(parseInt(v)))) return;
+    const newLog = log.filter((e) => e.type === 'round').map((e, i) => {
+      if (log.indexOf(e) === editingIndex) {
+        return { ...e, values: editValues.map((v) => parseInt(v)) };
+      }
+      return e;
+    });
+    const newScores = recalcScores(newLog);
+    setScores(newScores);
+    setLog(newLog);
+    setEditingIndex(null);
+    localStorage.setItem('gameScores', JSON.stringify(newScores));
+    localStorage.setItem('gameLog', JSON.stringify(newLog));
+  };
+
+  const handleCancelEdit = () => {
+    setEditingIndex(null);
   };
 
   const handleResetAll = () => {
@@ -225,6 +273,35 @@ export default function DummyCalculator({ playerNames, onReset }) {
           </div>
         </div>
 
+        {/* Stats */}
+        {log.filter(e => e.type === 'round').length > 0 && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-lg p-5 mb-4">
+            <h2 className="text-[#0F2854] font-semibold mb-3 text-sm uppercase tracking-wider">
+              📊 สถิติ
+            </h2>
+            <div className="grid grid-cols-4 gap-3 text-center">
+              {playerNames.map((name, i) => {
+                const rounds = log.filter(e => e.type === 'round');
+                const avg = rounds.length > 0
+                  ? (rounds.reduce((sum, e) => sum + e.values[i], 0) / rounds.length).toFixed(1)
+                  : '0';
+                const max = rounds.length > 0 ? Math.max(...rounds.map(e => e.values[i])) : 0;
+                const min = rounds.length > 0 ? Math.min(...rounds.map(e => e.values[i])) : 0;
+                return (
+                  <div key={i}>
+                    <p className="text-[#4988C4] text-xs font-medium truncate mb-1">{name}</p>
+                    <p className="text-[#0F2854] text-sm">เฉลี่ย <span className="font-bold">{avg}</span></p>
+                    <p className="text-[#4988C4] text-xs">สูงสุด {max} / ต่ำสุด {min}</p>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-center text-xs text-gray-400 mt-2">
+              รอบที่เล่น: {log.filter(e => e.type === 'round').length}
+            </p>
+          </div>
+        )}
+
         {/* Log */}
         {log.length > 0 && (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-lg p-5">
@@ -233,21 +310,46 @@ export default function DummyCalculator({ playerNames, onReset }) {
             </h2>
             <div className="space-y-1">
               {log.map((entry, i) => (
-                <div
-                  key={i}
-                  className={`grid grid-cols-4 gap-3 py-2 px-3 rounded-lg ${getLogRowStyle(entry.type)}`}
-                >
-                  {entry.values.map((val, j) => (
-                    <div key={j} className="text-center font-semibold tabular-nums text-lg">
-                      {getLogLabel(entry.type) && j === 0 && (
-                        <span className="text-xs font-normal opacity-60 block -mb-1">
-                          {getLogLabel(entry.type)}
-                        </span>
-                      )}
-                      {val > 0 ? `+${val}` : val}
+                editingIndex === i ? (
+                  <div key={i} className="grid grid-cols-4 gap-2 py-2 px-3 rounded-lg bg-[#BDE8F5]/30 border-2 border-[#4988C4]">
+                    {editValues.map((val, j) => (
+                      <input
+                        key={j}
+                        type="number"
+                        value={val}
+                        onChange={(e) => {
+                          const updated = [...editValues];
+                          updated[j] = e.target.value;
+                          setEditValues(updated);
+                        }}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleSaveEdit(); if (e.key === 'Escape') handleCancelEdit(); }}
+                        className="w-full text-center text-base font-semibold py-1 rounded-lg bg-white border border-gray-200 text-[#0F2854] focus:outline-none focus:ring-2 focus:ring-[#4988C4] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        autoFocus={j === 0}
+                      />
+                    ))}
+                    <div className="col-span-4 flex gap-2 mt-1">
+                      <button onClick={handleSaveEdit} className="flex-1 py-1 rounded-lg bg-[#1C4D8D] text-white text-sm font-semibold hover:bg-[#0F2854] cursor-pointer">บันทึก</button>
+                      <button onClick={handleCancelEdit} className="flex-1 py-1 rounded-lg bg-gray-100 text-gray-500 text-sm font-semibold hover:bg-gray-200 cursor-pointer">ยกเลิก</button>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ) : (
+                  <div
+                    key={i}
+                    onClick={() => handleEditLog(i)}
+                    className={`grid grid-cols-4 gap-3 py-2 px-3 rounded-lg ${getLogRowStyle(entry.type)} ${entry.type === 'round' ? 'cursor-pointer hover:ring-2 hover:ring-[#4988C4]/30' : ''}`}
+                  >
+                    {entry.values.map((val, j) => (
+                      <div key={j} className="text-center font-semibold tabular-nums text-lg">
+                        {getLogLabel(entry.type) && j === 0 && (
+                          <span className="text-xs font-normal opacity-60 block -mb-1">
+                            {getLogLabel(entry.type)}
+                          </span>
+                        )}
+                        {val > 0 ? `+${val}` : val}
+                      </div>
+                    ))}
+                  </div>
+                )
               ))}
             </div>
           </div>
@@ -260,6 +362,13 @@ export default function DummyCalculator({ playerNames, onReset }) {
             className="text-[#4988C4] hover:text-[#0F2854] text-sm transition-all cursor-pointer"
           >
             ← เปลี่ยนผู้เล่น
+          </button>
+          <span className="text-gray-300 mx-2">|</span>
+          <button
+            onClick={onHistory}
+            className="text-[#4988C4] hover:text-[#0F2854] text-sm transition-all cursor-pointer"
+          >
+            🏆 ประวัติเกม
           </button>
         </div>
       </div>

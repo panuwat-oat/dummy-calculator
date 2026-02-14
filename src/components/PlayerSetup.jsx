@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export default function PlayerSetup({ onStart }) {
+export default function PlayerSetup({ onStart, onHistory }) {
   const [names, setNames] = useState(['', '', '', '']);
 
   const handleChange = (index, value) => {
@@ -55,6 +55,14 @@ export default function PlayerSetup({ onStart }) {
             🎮 เริ่มเกม
           </button>
         </form>
+        <div className="text-center mt-4">
+          <button
+            onClick={onHistory}
+            className="text-[#4988C4] hover:text-[#0F2854] text-sm transition-all cursor-pointer"
+          >
+            🏆 ดูประวัติเกม
+          </button>
+        </div>
       </div>
     </div>
   );
