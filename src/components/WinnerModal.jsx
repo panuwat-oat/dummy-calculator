@@ -1,4 +1,35 @@
+import { useEffect } from 'react';
+import confetti from 'canvas-confetti';
+
 export default function WinnerModal({ winner, prices, playerNames, onClose }) {
+  useEffect(() => {
+    // Trigger confetti
+    const duration = 3000;
+    const end = Date.now() + duration;
+
+    const frame = () => {
+      confetti({
+        particleCount: 2,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0 },
+        colors: ['#1C4D8D', '#4988C4', '#BDE8F5', '#FFD700']
+      });
+      confetti({
+        particleCount: 2,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1 },
+        colors: ['#1C4D8D', '#4988C4', '#BDE8F5', '#FFD700']
+      });
+
+      if (Date.now() < end) {
+        requestAnimationFrame(frame);
+      }
+    };
+    frame();
+  }, []);
+
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md text-center animate-bounce-in">

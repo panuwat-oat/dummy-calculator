@@ -36,7 +36,7 @@ export default function PlayerSetup({ onStart, onHistory }) {
       }
     };
     loadNames();
-  }, []);
+  }, [user]);
 
   const handleChange = (index, value) => {
     const updated = [...names];
@@ -80,10 +80,10 @@ export default function PlayerSetup({ onStart, onHistory }) {
       // For joining, we might only need the first name as "Me"
       // But preserving the array format for consistency
       const myName = names[0].trim();
-      await joinRoom(joinRoomId, myName); // In real logic this might try to find a slot
+      const updatedNames = await joinRoom(joinRoomId, myName); 
       
       // We pass the room ID to onStart
-      onStart(names, joinRoomId);
+      onStart(updatedNames, joinRoomId);
       setLoading(false);
       return;
     }
@@ -102,9 +102,7 @@ export default function PlayerSetup({ onStart, onHistory }) {
     let roomId = null;
     if (mode === 'create') {
       try {
-        roomId = await createRoom(trimmedNames[0]);
-        // Update room with all names initially
-        // (The createRoom function currently only sets host name, let's assume we want all if filled)
+        roomId = await createRoom(trimmedNames);
       } catch (e) {
         console.error(e);
         setError('สร้างห้องไม่สำเร็จ');

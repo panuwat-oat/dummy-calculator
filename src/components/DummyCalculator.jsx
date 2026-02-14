@@ -1,8 +1,20 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { motion, useSpring, useTransform } from 'framer-motion';
 import WinnerModal from './WinnerModal';
 import { saveActiveGame, subscribeToActiveGame, clearActiveGame, saveGameHistory, updateRoomState, subscribeToRoom } from '../services/db';
 
 const WINNING_SCORE = 500;
+
+function AnimatedScore({ value, className }) {
+  let spring = useSpring(value, { mass: 0.8, stiffness: 75, damping: 15 });
+  let display = useTransform(spring, (current) => Math.round(current));
+
+  useEffect(() => {
+    spring.set(value);
+  }, [value, spring]);
+
+  return <motion.span className={className}>{display}</motion.span>;
+}
 
 function checkPrice(num) {
   let sum = 0;
@@ -324,7 +336,7 @@ export default function DummyCalculator({ playerNames, roomId, onReset, onHistor
               <div key={i} className="text-center">
                 <p className="text-[#4988C4] text-sm font-medium truncate mb-1">{name}</p>
                 <p className={`text-3xl md:text-4xl font-bold tabular-nums ${getScoreColor(scores[i])}`}>
-                  {scores[i]}
+                  <AnimatedScore value={scores[i]} />
                 </p>
               </div>
             ))}

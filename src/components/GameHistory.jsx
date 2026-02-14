@@ -1,18 +1,32 @@
 import { useState, useEffect } from 'react';
 import { getGameHistory, clearGameHistory } from '../services/db';
+import { subscribeToAuth } from '../services/auth';
 
 export default function GameHistory({ onBack }) {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    // Listen for auth changes to ensure we fetch the right history
+    const unsubscribe = subscribeToAuth((u) => {
+      setUser(u);
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     const loadHistory = async () => {
+      setLoading(true);
+      // getGameHistory inside db.js checks auth.currentUser directly, 
+      // but triggering this effect on 'user' change ensures we wait/retry 
+      // when auth state settles.
       const data = await getGameHistory();
       setHistory(data);
       setLoading(false);
     };
     loadHistory();
-  }, []);
+  }, [user]); // Reload when user changes (login/logout/initial load)
 
   const handleClear = async () => {
     if (!window.confirm('ลบประวัติเกมทั้งหมด?')) return;

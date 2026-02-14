@@ -1,5 +1,5 @@
-import { db } from '../firebase';
-import { collection, addDoc, query, where, orderBy, getDocs, doc, setDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { db, auth } from '../firebase';
+import { collection, addDoc, query, where, orderBy, getDocs, doc, setDoc, onSnapshot, serverTimestamp, runTransaction } from 'firebase/firestore';
 
 const DEVICE_ID_KEY = 'dummy_calculator_device_id';
 
@@ -12,15 +12,19 @@ const getDeviceId = () => {
   return id;
 };
 
+const getUserId = () => {
+    return auth.currentUser ? auth.currentUser.uid : getDeviceId();
+};
+
 // History Collection
 const HISTORY_COLLECTION = 'game_history';
 
 export const saveGameHistory = async (gameData) => {
   try {
-    const deviceId = getDeviceId();
+    const userId = getUserId();
     await addDoc(collection(db, HISTORY_COLLECTION), {
       ...gameData,
-      deviceId,
+      deviceId: userId, // Use userId (auth uid or deviceId)
       createdAt: serverTimestamp(),
       date: new Date().toISOString() // Keep string date for compatibility
     });
@@ -31,10 +35,10 @@ export const saveGameHistory = async (gameData) => {
 
 export const getGameHistory = async () => {
   try {
-    const deviceId = getDeviceId();
+    const userId = getUserId();
     const q = query(
       collection(db, HISTORY_COLLECTION),
-      where("deviceId", "==", deviceId),
+      where("deviceId", "==", userId),
       orderBy("createdAt", "desc")
     );
     const querySnapshot = await getDocs(q);
@@ -51,16 +55,15 @@ export const clearGameHistory = async () => {
     // or we could delete them one by one.
     // Let's leave it as a future todo or implement deletion one by one.
     try {
-        const deviceId = getDeviceId();
+        const userId = getUserId();
         const q = query(
             collection(db, HISTORY_COLLECTION),
-            where("deviceId", "==", deviceId)
+            where("deviceId", "==", userId)
         );
         const querySnapshot = await getDocs(q);
         // Delete all docs (batching would be better but simple loop for now)
         // Ideally we shouldn't do this often.
         // For this task, maybe just clear local view? 
-        // Let's skipping actual delete to avoid quota usage spikes for now unless requested.
         console.warn("Clearing cloud history is not fully implemented to save quota.");
     } catch (error) {
         console.error("Error clearing history:", error);
@@ -70,16 +73,20 @@ export const clearGameHistory = async () => {
 // Room Collection (Multiplayer)
 const ROOMS_COLLECTION = 'rooms';
 
-export const createRoom = async (hostName) => {
+export const createRoom = async (initialNames) => {
     try {
         const roomId = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digit code
-        const deviceId = getDeviceId();
+        const userId = getUserId();
         
+        // Ensure we have 4 names
+        const names = [...initialNames];
+        while (names.length < 4) names.push('');
+
         const initialData = {
             roomId,
-            hostId: deviceId,
+            hostId: userId,
             createdAt: serverTimestamp(),
-            playerNames: [hostName, '', '', ''], // Host is P1 by default
+            playerNames: names,
             scores: [0, 0, 0, 0],
             log: [],
             status: 'waiting',
@@ -106,8 +113,44 @@ export const checkRoomExists = async (roomId) => {
 };
 
 export const joinRoom = async (roomId, playerName) => {
-    // Just a placeholder for now, main logic is in subscribing
-    return checkRoomExists(roomId);
+    try {
+        const roomRef = doc(db, ROOMS_COLLECTION, roomId);
+        let currentNames = [];
+
+        await runTransaction(db, async (transaction) => {
+            const roomDoc = await transaction.get(roomRef);
+            if (!roomDoc.exists()) {
+                throw new Error("Room does not exist!");
+            }
+
+            const data = roomDoc.data();
+            currentNames = [...(data.playerNames || ['', '', '', ''])];
+
+            // Find empty slot
+            const emptyIndex = currentNames.findIndex(n => n === '' || n.trim() === '');
+            
+            // Or check if this player is already in the room (re-joining)
+            const existingIndex = currentNames.findIndex(n => n === playerName);
+
+            if (existingIndex !== -1) {
+                // Player already in room, do nothing, just return current state
+                return;
+            }
+
+            if (emptyIndex === -1) {
+                throw new Error("Room is full!");
+            }
+
+            // Occupy the slot
+            currentNames[emptyIndex] = playerName;
+            transaction.update(roomRef, { playerNames: currentNames });
+        });
+
+        return currentNames;
+    } catch (error) {
+        console.error("Error joining room:", error);
+        throw error;
+    }
 };
 
 // Better approach: Update the entire game state from the host, 
@@ -137,14 +180,13 @@ export const subscribeToRoom = (roomId, callback) => {
     });
 };
 
-
 // User Preferences / Settings (e.g. last player names)
 const SETTINGS_COLLECTION = 'user_settings';
 
 export const saveLastPlayerNames = async (names) => {
     try {
-        const deviceId = getDeviceId();
-        await setDoc(doc(db, SETTINGS_COLLECTION, deviceId), {
+        const userId = getUserId();
+        await setDoc(doc(db, SETTINGS_COLLECTION, userId), {
             lastPlayerNames: names,
             updatedAt: serverTimestamp()
         }, { merge: true });
@@ -155,9 +197,8 @@ export const saveLastPlayerNames = async (names) => {
 
 export const getLastPlayerNames = async () => {
     try {
-        const deviceId = getDeviceId();
-        const docRef = doc(db, SETTINGS_COLLECTION, deviceId);
-        const docSnap = await getDocs(query(collection(db, SETTINGS_COLLECTION), where('__name__', '==', deviceId))); // Workaround or just getDoc
+        const userId = getUserId();
+        const docRef = doc(db, SETTINGS_COLLECTION, userId);
         // Better:
         const d = await import('firebase/firestore').then(mod => mod.getDoc(docRef));
         
@@ -168,5 +209,45 @@ export const getLastPlayerNames = async () => {
     } catch (error) {
         console.error("Error getting last player names:", error);
         return null;
+    }
+};
+
+// Active Game Collection (for real-time persistence)
+const GAMES_COLLECTION = 'active_games';
+
+export const saveActiveGame = async (gameData) => {
+    try {
+        const userId = getUserId();
+        // We use userId as docId for simplicity to have one active game per device/user
+        await setDoc(doc(db, GAMES_COLLECTION, userId), {
+            ...gameData,
+            updatedAt: serverTimestamp()
+        });
+    } catch (error) {
+        console.error("Error saving active game:", error);
+    }
+};
+
+export const subscribeToActiveGame = (callback) => {
+    const userId = getUserId();
+    return onSnapshot(doc(db, GAMES_COLLECTION, userId), (doc) => {
+        if (doc.exists()) {
+            callback(doc.data());
+        } else {
+            callback(null);
+        }
+    });
+};
+
+export const clearActiveGame = async () => {
+    try {
+        const userId = getUserId();
+        // Instead of delete, just set empty/null state or specific flag
+        await setDoc(doc(db, GAMES_COLLECTION, userId), {
+            active: false,
+            updatedAt: serverTimestamp()
+        });
+    } catch (error) {
+        console.error("Error clearing active game:", error);
     }
 };
