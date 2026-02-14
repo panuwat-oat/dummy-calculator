@@ -46,6 +46,13 @@ export default function DummyCalculator({ playerNames, roomId, onReset, onHistor
   const [winner, setWinner] = useState(null);
   const [winnerPrices, setWinnerPrices] = useState(null);
   const [showHelp, setShowHelp] = useState(false);
+  const isRemoteUpdate = useRef(false);
+  const stateRef = useRef({ scores, log, playerNames });
+
+  // Keep ref synced with state for subscription callbacks
+  useEffect(() => {
+    stateRef.current = { scores, log, playerNames };
+  }, [scores, log, playerNames]);
   
   // Load active game from Firestore (Room or Single)
   useEffect(() => {
@@ -55,11 +62,36 @@ export default function DummyCalculator({ playerNames, roomId, onReset, onHistor
       // Multiplayer Mode
       unsubscribe = subscribeToRoom(roomId, (data) => {
         if (data) {
-          setScores(data.scores || [0, 0, 0, 0]);
-          setLog(data.log || []);
+          const newScores = data.scores || [0, 0, 0, 0];
+          const newLog = data.log || [];
+          const newPlayerNames = data.playerNames;
+
+          const prevScores = stateRef.current.scores;
+          const prevLog = stateRef.current.log;
+          const prevPlayerNames = stateRef.current.playerNames;
+
+          let hasChanges = false;
+
+          // Check scores
+          if (JSON.stringify(prevScores) !== JSON.stringify(newScores)) {
+             setScores(newScores);
+             hasChanges = true;
+          }
+
+          // Check log
+          if (JSON.stringify(prevLog) !== JSON.stringify(newLog)) {
+             setLog(newLog);
+             hasChanges = true;
+          }
+
           // Sync player names if they change in the room (e.g. someone joins)
-          if (data.playerNames && JSON.stringify(data.playerNames) !== JSON.stringify(playerNames)) {
-             window.dispatchEvent(new CustomEvent('updatePlayerNames', { detail: data.playerNames }));
+          if (newPlayerNames && JSON.stringify(newPlayerNames) !== JSON.stringify(prevPlayerNames)) {
+             window.dispatchEvent(new CustomEvent('updatePlayerNames', { detail: newPlayerNames }));
+             hasChanges = true;
+          }
+
+          if (hasChanges) {
+             isRemoteUpdate.current = true;
           }
         }
       });
@@ -67,8 +99,27 @@ export default function DummyCalculator({ playerNames, roomId, onReset, onHistor
       // Single Player Mode
       unsubscribe = subscribeToActiveGame((data) => {
         if (data && data.active) {
-          setScores(data.scores || [0, 0, 0, 0]);
-          setLog(data.log || []);
+          const newScores = data.scores || [0, 0, 0, 0];
+          const newLog = data.log || [];
+          
+          const prevScores = stateRef.current.scores;
+          const prevLog = stateRef.current.log;
+
+          let hasChanges = false;
+
+          if (JSON.stringify(prevScores) !== JSON.stringify(newScores)) {
+             setScores(newScores);
+             hasChanges = true;
+          }
+          
+          if (JSON.stringify(prevLog) !== JSON.stringify(newLog)) {
+             setLog(newLog);
+             hasChanges = true;
+          }
+
+          if (hasChanges) {
+             isRemoteUpdate.current = true;
+          }
         }
       });
     }
@@ -78,6 +129,11 @@ export default function DummyCalculator({ playerNames, roomId, onReset, onHistor
 
   // Save active game to Firestore whenever state changes
   useEffect(() => {
+    if (isRemoteUpdate.current) {
+        isRemoteUpdate.current = false;
+        return;
+    }
+
     if (log.length > 0 || scores.some(s => s !== 0)) {
         if (roomId) {
             updateRoomState(roomId, {
