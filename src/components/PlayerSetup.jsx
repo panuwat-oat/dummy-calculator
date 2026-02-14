@@ -1,7 +1,10 @@
 import { useState } from 'react';
 
 export default function PlayerSetup({ onStart, onHistory }) {
-  const [names, setNames] = useState(['', '', '', '']);
+  const [names, setNames] = useState(() => {
+    const saved = localStorage.getItem('lastPlayerNames');
+    return saved ? JSON.parse(saved) : ['', '', '', ''];
+  });
 
   const handleChange = (index, value) => {
     const updated = [...names];
@@ -12,7 +15,9 @@ export default function PlayerSetup({ onStart, onHistory }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (names.some((n) => n.trim() === '')) return;
-    onStart(names.map((n) => n.trim()));
+    const trimmedNames = names.map((n) => n.trim());
+    localStorage.setItem('lastPlayerNames', JSON.stringify(trimmedNames));
+    onStart(trimmedNames);
   };
 
   const allFilled = names.every((n) => n.trim() !== '');
