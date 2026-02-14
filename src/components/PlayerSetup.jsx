@@ -88,10 +88,20 @@ export default function PlayerSetup({ onStart, onHistory }) {
       return;
     }
 
-    // Single or Create Room
-    if (names.some((n) => n.trim() === '')) {
-      setError('กรุณากรอกชื่อให้ครบ 4 คน');
-      return;
+    // Single Player Mode - Require all 4 names
+    if (mode === 'single') {
+      if (names.some((n) => n.trim() === '')) {
+        setError('กรุณากรอกชื่อให้ครบ 4 คน');
+        return;
+      }
+    }
+
+    // Create Room Mode - Require only Host name (Player 1)
+    if (mode === 'create') {
+      if (!names[0].trim()) {
+        setError('กรุณากรอกชื่อของคุณ (ผู้เล่น 1)');
+        return;
+      }
     }
     
     setLoading(true);
