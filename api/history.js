@@ -3,7 +3,7 @@ import { sql } from '@vercel/postgres';
 export default async function handler(request, response) {
   try {
     const { method } = request;
-    const { deviceId } = request.query;
+    const deviceId = request.query.deviceId || request.body?.deviceId;
 
     if (method === 'GET') {
       if (!deviceId) return response.status(400).json({ error: 'Device ID required' });
@@ -17,7 +17,7 @@ export default async function handler(request, response) {
     }
 
     if (method === 'POST') {
-      const { deviceId, winner, rounds, players, date } = request.body;
+      const { winner, rounds, players, date } = request.body;
       if (!deviceId) return response.status(400).json({ error: 'Device ID required' });
 
       await sql`
