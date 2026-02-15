@@ -77,6 +77,11 @@ export const clearGameHistory = async () => {
 export const saveLastPlayerNames = async (names) => {
     try {
         const userId = getUserId();
+        if (!userId) {
+            console.error("saveLastPlayerNames: No userId found");
+            return;
+        }
+        console.log("Saving last player names for:", userId);
         await apiCall(`/settings?deviceId=${userId}`, 'POST', {
             lastPlayerNames: names
         });
