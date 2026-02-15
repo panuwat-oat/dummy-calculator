@@ -82,8 +82,10 @@ export const saveLastPlayerNames = async (names) => {
             return;
         }
         console.log("Saving last player names for:", userId);
+        // Send deviceId in both query (for logging/debugging) and body (for robustness)
         await apiCall(`/settings?deviceId=${userId}`, 'POST', {
-            lastPlayerNames: names
+            lastPlayerNames: names,
+            deviceId: userId 
         });
     } catch (error) {
         console.error("Error saving last player names:", error);
@@ -104,7 +106,11 @@ export const getLastPlayerNames = async () => {
 export const saveActiveGame = async (gameData) => {
     try {
         const userId = getUserId();
-        await apiCall(`/active?deviceId=${userId}`, 'POST', gameData);
+        // Send deviceId in both query and body
+        await apiCall(`/active?deviceId=${userId}`, 'POST', {
+            ...gameData,
+            deviceId: userId
+        });
     } catch (error) {
         console.error("Error saving active game:", error);
     }
