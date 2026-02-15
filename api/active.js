@@ -3,7 +3,7 @@ import { sql } from '@vercel/postgres';
 export default async function handler(request, response) {
   try {
     const { method } = request;
-    const { deviceId } = request.query;
+    const deviceId = request.query.deviceId || request.body?.deviceId;
 
     if (!deviceId) return response.status(400).json({ error: 'Device ID required' });
 
