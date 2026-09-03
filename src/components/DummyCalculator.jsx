@@ -39,7 +39,38 @@ function checkPrice(num) {
   return sum;
 }
 
-export default function DummyCalculator({ playerNames, onReset, onHistory }) {
+function buildGameState(rounds) {
+  const scores = [0, 0, 0, 0];
+  rounds.forEach((entry) => {
+    entry.values.forEach((v, i) => { scores[i] += v; });
+  });
+
+  // Winner = highest score among those who reached WINNING_SCORE (ties fall back to lowest index)
+  let winnerIndex = -1;
+  scores.forEach((s, i) => {
+    if (s >= WINNING_SCORE && (winnerIndex === -1 || s > scores[winnerIndex])) {
+      winnerIndex = i;
+    }
+  });
+
+  if (winnerIndex === -1) {
+    return { scores, log: rounds, winnerIndex, prices: null };
+  }
+
+  const priceUnits = scores.map((s) => checkPrice(s));
+  const prices = priceUnits.map((p, i) =>
+    priceUnits.reduce((sum, other, j) => (i !== j ? sum + (p - other) : sum), 0)
+  );
+
+  return {
+    scores,
+    log: [...rounds, { type: 'price_units', values: priceUnits }, { type: 'settlement', values: prices }],
+    winnerIndex,
+    prices,
+  };
+}
+
+export default function DummyCalculator({ playerNames, onReset, onHistory, onPlayerNamesChange }) {
   const [scores, setScores] = useState([0, 0, 0, 0]);
   const [inputs, setInputs] = useState(['0', '0', '0', '0']);
   const [log, setLog] = useState([]);
@@ -48,21 +79,22 @@ export default function DummyCalculator({ playerNames, onReset, onHistory }) {
   const [showHelp, setShowHelp] = useState(false);
   const isRemoteUpdate = useRef(false);
   const stateRef = useRef({ scores, log });
+  const hasSavedGameRef = useRef(false);
 
   // Keep ref synced with state for subscription callbacks
   useEffect(() => {
     stateRef.current = { scores, log };
   }, [scores, log]);
-  
-  // Load active game from Firestore (Single Player)
+
+  // Load active game from Postgres API (Single Player), polled every 2s
   useEffect(() => {
     let unsubscribe;
-    
+
     unsubscribe = subscribeToActiveGame((data) => {
       if (data && data.active) {
         const newScores = data.scores || [0, 0, 0, 0];
         const newLog = data.log || [];
-        
+
         const prevScores = stateRef.current.scores;
         const prevLog = stateRef.current.log;
 
@@ -72,7 +104,7 @@ export default function DummyCalculator({ playerNames, onReset, onHistory }) {
             setScores(newScores);
             hasChanges = true;
         }
-        
+
         if (JSON.stringify(prevLog) !== JSON.stringify(newLog)) {
             setLog(newLog);
             hasChanges = true;
@@ -81,26 +113,35 @@ export default function DummyCalculator({ playerNames, onReset, onHistory }) {
         if (hasChanges) {
             isRemoteUpdate.current = true;
         }
+
+        hasSavedGameRef.current = true;
       }
     });
 
     return () => unsubscribe && unsubscribe();
   }, []);
 
-  // Save active game to Firestore whenever state changes
+  // Save active game to Postgres API whenever state changes
   useEffect(() => {
     if (isRemoteUpdate.current) {
         isRemoteUpdate.current = false;
         return;
     }
 
-    if (log.length > 0 || scores.some(s => s !== 0)) {
+    const hasGame = log.length > 0 || scores.some((s) => s !== 0);
+
+    if (hasGame) {
+        hasSavedGameRef.current = true;
         saveActiveGame({
             active: true,
             playerNames,
             scores,
             log
         });
+    } else if (hasSavedGameRef.current) {
+        // Board was cleared locally — tell the server, otherwise the poll restores the old game
+        hasSavedGameRef.current = false;
+        clearActiveGame();
     }
   }, [scores, log, playerNames]);
 
@@ -128,27 +169,13 @@ export default function DummyCalculator({ playerNames, onReset, onHistory }) {
     if (!tempName.trim()) return;
     const newNames = [...playerNames];
     newNames[editingNameIndex] = tempName.trim();
-    localStorage.setItem('playerNames', JSON.stringify(newNames));
-    
-    // Update locally
-    window.dispatchEvent(new CustomEvent('updatePlayerNames', { detail: newNames }));
-    
+    onPlayerNamesChange(newNames);
     setEditingNameIndex(null);
   };
 
   const handleCancelEditName = () => {
     setEditingNameIndex(null);
     setTempName('');
-  };
-
-  const recalcScores = (logData) => {
-    const newScores = [0, 0, 0, 0];
-    logData.forEach((entry) => {
-      if (entry.type === 'round') {
-        entry.values.forEach((v, i) => { newScores[i] += v; });
-      }
-    });
-    return newScores;
   };
 
   const handleInputChange = (index, value) => {
@@ -174,44 +201,34 @@ export default function DummyCalculator({ playerNames, onReset, onHistory }) {
     }
 
     const values = inputs.map((v) => parseInt(v));
-    const newScores = scores.map((s, i) => s + values[i]);
-    const newLog = [...log, { type: 'round', values }];
+    const rounds = [...log.filter((e) => e.type === 'round'), { type: 'round', values }];
+    const result = buildGameState(rounds);
 
-    // Check winner
-    const winnerIndex = newScores.findIndex((s) => s >= WINNING_SCORE);
-    if (winnerIndex !== -1) {
-      const priceUnits = newScores.map((s) => checkPrice(s));
-      newLog.push({ type: 'price_units', values: priceUnits });
-
-      const prices = priceUnits.map((p, i) =>
-        priceUnits.reduce((sum, other, j) => (i !== j ? sum + (p - other) : sum), 0)
-      );
-      newLog.push({ type: 'settlement', values: prices });
-
-      setWinner(playerNames[winnerIndex]);
-      setWinnerPrices(prices);
+    if (result.winnerIndex !== -1) {
+      setWinner(playerNames[result.winnerIndex]);
+      setWinnerPrices(result.prices);
 
       // Save to game history (Cloud)
       const gameResult = {
-        winner: playerNames[winnerIndex],
-        rounds: newLog.filter(e => e.type === 'round').length,
+        winner: playerNames[result.winnerIndex],
+        rounds: rounds.length,
         players: playerNames.map((name, idx) => ({
           name,
-          score: newScores[idx],
-          settlement: prices[idx],
+          score: result.scores[idx],
+          settlement: result.prices[idx],
         })),
       };
       saveGameHistory(gameResult);
     }
 
-    setScores(newScores);
-    setLog(newLog);
+    setScores(result.scores);
+    setLog(result.log);
     // Local storage backup (optional, keeping it doesn't hurt)
-    localStorage.setItem('gameScores', JSON.stringify(newScores));
-    localStorage.setItem('gameLog', JSON.stringify(newLog));
+    localStorage.setItem('gameScores', JSON.stringify(result.scores));
+    localStorage.setItem('gameLog', JSON.stringify(result.log));
     setInputs(['0', '0', '0', '0']);
     inputRefs.current[0]?.focus();
-  }, [inputs, scores, log, playerNames]);
+  }, [inputs, log, playerNames]);
 
   const handleNewRound = () => {
     setScores([0, 0, 0, 0]);
@@ -219,9 +236,10 @@ export default function DummyCalculator({ playerNames, onReset, onHistory }) {
     setLog([]);
     setWinner(null);
     setWinnerPrices(null);
-    
+
     clearActiveGame(); // Clear from cloud
-    
+    hasSavedGameRef.current = false;
+
     localStorage.setItem('gameScores', JSON.stringify([0, 0, 0, 0]));
     localStorage.removeItem('gameLog');
     inputRefs.current[0]?.focus();
@@ -230,16 +248,15 @@ export default function DummyCalculator({ playerNames, onReset, onHistory }) {
   const handleUndo = () => {
     if (log.length === 0) return;
     if (!window.confirm('ย้อนกลับรอบล่าสุด?')) return;
-    const lastRoundIndex = [...log].map((e, i) => ({ ...e, i })).filter(e => e.type === 'round').pop();
-    if (!lastRoundIndex) return;
-    const newLog = log.slice(0, lastRoundIndex.i);
-    const newScores = recalcScores(newLog);
-    setScores(newScores);
-    setLog(newLog);
-    setWinner(null);
-    setWinnerPrices(null);
-    localStorage.setItem('gameScores', JSON.stringify(newScores));
-    localStorage.setItem('gameLog', JSON.stringify(newLog));
+    const rounds = log.filter((e) => e.type === 'round');
+    if (rounds.length === 0) return;
+    const result = buildGameState(rounds.slice(0, -1));
+    setScores(result.scores);
+    setLog(result.log);
+    setWinner(result.winnerIndex !== -1 ? playerNames[result.winnerIndex] : null);
+    setWinnerPrices(result.prices);
+    localStorage.setItem('gameScores', JSON.stringify(result.scores));
+    localStorage.setItem('gameLog', JSON.stringify(result.log));
     inputRefs.current[0]?.focus();
   };
 
@@ -251,18 +268,20 @@ export default function DummyCalculator({ playerNames, onReset, onHistory }) {
 
   const handleSaveEdit = () => {
     if (editValues.some((v) => v === '' || isNaN(parseInt(v)))) return;
-    const newLog = log.filter((e) => e.type === 'round').map((e, i) => {
-      if (log.indexOf(e) === editingIndex) {
-        return { ...e, values: editValues.map((v) => parseInt(v)) };
+    const rounds = log.filter((e) => e.type === 'round').map((e, i) => {
+      if (i === editingIndex) {
+        return { type: 'round', values: editValues.map((v) => parseInt(v)) };
       }
       return e;
     });
-    const newScores = recalcScores(newLog);
-    setScores(newScores);
-    setLog(newLog);
+    const result = buildGameState(rounds);
+    setScores(result.scores);
+    setLog(result.log);
+    setWinner(result.winnerIndex !== -1 ? playerNames[result.winnerIndex] : null);
+    setWinnerPrices(result.prices);
     setEditingIndex(null);
-    localStorage.setItem('gameScores', JSON.stringify(newScores));
-    localStorage.setItem('gameLog', JSON.stringify(newLog));
+    localStorage.setItem('gameScores', JSON.stringify(result.scores));
+    localStorage.setItem('gameLog', JSON.stringify(result.log));
   };
 
   const handleCancelEdit = () => {
@@ -276,8 +295,9 @@ export default function DummyCalculator({ playerNames, onReset, onHistory }) {
     setLog([]);
     setWinner(null);
     setWinnerPrices(null);
-    
+
     clearActiveGame(); // Clear from cloud
+    hasSavedGameRef.current = false;
 
     localStorage.setItem('gameScores', JSON.stringify([0, 0, 0, 0]));
     localStorage.removeItem('gameLog');

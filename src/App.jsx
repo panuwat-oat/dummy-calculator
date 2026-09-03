@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import PlayerSetup from './components/PlayerSetup';
 import DummyCalculator from './components/DummyCalculator';
 import GameHistory from './components/GameHistory';
+import { saveLastPlayerNames } from './services/db';
 
 function App() {
   const [playerNames, setPlayerNames] = useState(() => {
@@ -36,6 +37,12 @@ function App() {
         setPlayerNames(null);
       }}
       onHistory={() => setPage('history')}
+      onPlayerNamesChange={(names) => {
+        localStorage.setItem('playerNames', JSON.stringify(names));
+        localStorage.setItem('lastPlayerNames', JSON.stringify(names));
+        saveLastPlayerNames(names);
+        setPlayerNames(names);
+      }}
     />
   );
 }
