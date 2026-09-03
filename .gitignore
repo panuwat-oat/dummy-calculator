@@ -28,3 +28,4 @@ dist-ssr
 
 # Claude Code project notes (local only, per global storage rule)
 CLAUDE.md
+.claude/

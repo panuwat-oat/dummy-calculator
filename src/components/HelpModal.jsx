@@ -17,7 +17,7 @@ export default function HelpModal({ onClose }) {
       >
         {/* Header */}
         <div className="bg-[#0F2854] px-4 py-3 sm:p-5 text-white flex justify-between items-center">
-          <h2 className="text-base sm:text-xl font-bold flex items-center gap-2">
+          <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
             📚 วิธีใช้งาน
           </h2>
           <button onClick={onClose} className="text-white/70 hover:text-white text-xl sm:text-2xl leading-none cursor-pointer">
@@ -30,13 +30,13 @@ export default function HelpModal({ onClose }) {
           
           {/* Modes */}
           <section>
-            <h3 className="font-bold text-sm sm:text-lg mb-2 sm:mb-3 flex items-center gap-2 text-[#1C4D8D]">
+            <h3 className="font-bold text-base sm:text-lg mb-2 sm:mb-3 flex items-center gap-2 text-[#1C4D8D]">
               🎮 โหมดการเล่น
             </h3>
             <div className="space-y-2 sm:space-y-3">
               <div className="bg-gray-50 p-2.5 sm:p-3 rounded-lg sm:rounded-xl border border-gray-100">
-                <p className="font-semibold text-xs sm:text-sm mb-0.5 sm:mb-1">👤 เล่นคนเดียว (Single Player)</p>
-                <p className="text-[11px] sm:text-sm text-gray-500">
+                <p className="font-semibold text-base mb-1">👤 เล่นคนเดียว (Single Player)</p>
+                <p className="text-sm sm:text-base text-gray-500">
                   เล่นบนเครื่องเดียว กรอกคะแนนให้เพื่อนๆ ทุกคน เหมาะสำหรับส่งมือถือวนกันดู
                 </p>
               </div>
@@ -45,10 +45,10 @@ export default function HelpModal({ onClose }) {
 
           {/* Scoring */}
           <section>
-            <h3 className="font-bold text-sm sm:text-lg mb-2 sm:mb-3 flex items-center gap-2 text-[#1C4D8D]">
+            <h3 className="font-bold text-base sm:text-lg mb-2 sm:mb-3 flex items-center gap-2 text-[#1C4D8D]">
               🧮 การคิดคะแนน
             </h3>
-            <ul className="list-disc list-outside ml-4 sm:ml-5 space-y-1 text-[11px] sm:text-sm text-gray-600">
+            <ul className="list-disc list-outside ml-5 space-y-1.5 text-sm sm:text-base text-gray-600">
               <li>กรอกคะแนนดิบที่ได้ในแต่ละรอบ (เช่น 120, -50)</li>
               <li>ระบบจะบวกคะแนนสะสมให้อัตโนมัติ</li>
               <li>เมื่อมีคนแต้มถึง <span className="font-bold text-[#1C4D8D]">500</span> เกมจะจบทันที</li>
@@ -64,10 +64,10 @@ export default function HelpModal({ onClose }) {
 
           {/* Tips */}
           <section>
-            <h3 className="font-bold text-sm sm:text-lg mb-2 sm:mb-3 flex items-center gap-2 text-[#1C4D8D]">
+            <h3 className="font-bold text-base sm:text-lg mb-2 sm:mb-3 flex items-center gap-2 text-[#1C4D8D]">
               💡 ทริคการใช้งาน
             </h3>
-            <ul className="space-y-1.5 sm:space-y-2 text-[11px] sm:text-sm text-gray-600">
+            <ul className="space-y-2 text-sm sm:text-base text-gray-600">
               <li className="flex gap-1.5 sm:gap-2">
                 <span>📝</span>
                 <span>กดที่ชื่อผู้เล่นเพื่อ <strong>แก้ไขชื่อ</strong> ได้ตลอดเวลา</span>
@@ -89,7 +89,7 @@ export default function HelpModal({ onClose }) {
         <div className="p-3 sm:p-4 bg-gray-50 text-center border-t border-gray-100">
           <button 
             onClick={onClose}
-            className="w-full py-2 bg-[#1C4D8D] text-white rounded-lg sm:rounded-xl font-semibold text-sm sm:text-base hover:bg-[#0F2854] transition-all cursor-pointer"
+            className="w-full h-12 bg-[#1C4D8D] text-white rounded-xl font-semibold text-base sm:text-lg hover:bg-[#0F2854] transition-all cursor-pointer"
           >
             เข้าใจแล้ว
           </button>
