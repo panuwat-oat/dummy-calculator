@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import confetti from 'canvas-confetti';
 
-export default function WinnerModal({ winner, prices, playerNames, onClose }) {
+export default function WinnerModal({ winner, prices, playerNames, unitRate, onClose }) {
   useEffect(() => {
     // Trigger confetti
     const duration = 3000;
@@ -43,7 +43,11 @@ export default function WinnerModal({ winner, prices, playerNames, onClose }) {
               <div key={i} className="text-center">
                 <p className="font-semibold text-[#4988C4] truncate text-[10px] sm:text-sm">{name}</p>
                 <p className={`text-lg sm:text-2xl font-bold ${prices[i] >= 0 ? 'text-[#1C4D8D]' : 'text-red-500'}`}>
-                  {prices[i] > 0 ? '+' : ''}{prices[i]}
+                  {prices[i] > 0 ? '+' : ''}{prices[i] * unitRate}
+                  <span className="text-xs sm:text-base">฿</span>
+                </p>
+                <p className="text-[10px] sm:text-xs text-[#4988C4]">
+                  {prices[i] > 0 ? '+' : ''}{prices[i]} หน่วย
                 </p>
               </div>
             ))}

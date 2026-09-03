@@ -77,6 +77,10 @@ export default function DummyCalculator({ playerNames, onReset, onHistory, onPla
   const [winner, setWinner] = useState(null);
   const [winnerPrices, setWinnerPrices] = useState(null);
   const [showHelp, setShowHelp] = useState(false);
+  const [unitRate, setUnitRate] = useState(() => {
+    const saved = parseInt(localStorage.getItem('unitRate'));
+    return Number.isNaN(saved) ? 5 : saved;
+  });
   const isRemoteUpdate = useRef(false);
   const stateRef = useRef({ scores, log });
   const hasSavedGameRef = useRef(false);
@@ -85,6 +89,11 @@ export default function DummyCalculator({ playerNames, onReset, onHistory, onPla
   useEffect(() => {
     stateRef.current = { scores, log };
   }, [scores, log]);
+
+  // Persist baht-per-unit rate locally
+  useEffect(() => {
+    localStorage.setItem('unitRate', String(unitRate));
+  }, [unitRate]);
 
   // Load active game from Postgres API (Single Player), polled every 2s
   useEffect(() => {
@@ -423,6 +432,24 @@ export default function DummyCalculator({ playerNames, onReset, onHistory, onPla
             ))}
           </div>
 
+          {/* Unit rate setting */}
+          <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-2.5 sm:mb-4">
+            <label htmlFor="unitRate" className="text-[#4988C4] text-[10px] sm:text-xs font-medium">
+              อัตรา
+            </label>
+            <input
+              id="unitRate"
+              type="number"
+              value={unitRate}
+              onChange={(e) => {
+                const parsed = parseInt(e.target.value);
+                setUnitRate(Number.isNaN(parsed) ? 0 : parsed);
+              }}
+              className="w-14 sm:w-16 text-center text-xs sm:text-sm font-semibold py-1 rounded-lg bg-gray-50 border border-gray-200 text-[#0F2854] focus:outline-none focus:ring-2 focus:ring-[#4988C4] focus:border-transparent transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            />
+            <span className="text-[#4988C4] text-[10px] sm:text-xs font-medium">บาท/หน่วย</span>
+          </div>
+
           <div className="flex gap-2 sm:gap-3">
             <button
               onClick={handleCalculate}
@@ -566,6 +593,7 @@ export default function DummyCalculator({ playerNames, onReset, onHistory, onPla
           winner={winner}
           prices={winnerPrices}
           playerNames={playerNames}
+          unitRate={unitRate}
           onClose={handleNewRound}
         />
       )}
